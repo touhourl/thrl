@@ -11,3 +11,4 @@ dumps/
 # uv.lock is untracked because different computers has different GPUs.
 uv.lock
 core/__pycache__/
+dist/
