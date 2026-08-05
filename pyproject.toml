@@ -11,7 +11,7 @@ description = "Touhou Reinforcement Learning Framework"
 requires-python = ">=3.14"
 dependencies = [
   "matplotlib>=3.11.1",
-  "numpy>=2.4.3",
+  "numpy>=2.5.1",
   "packaging>=26.2",
   "pandas>=3.0.5",
   "safetensors>=0.7.0",
