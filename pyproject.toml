@@ -16,7 +16,7 @@ dependencies = [
   "pandas>=3.0.5",
   "safetensors>=0.7.0",
   "torch==2.13.0+xpu",
-  "tqdm>=4.69.1",
+  "tqdm>=4.70.0",
 ]
 
 [tool.uv]
