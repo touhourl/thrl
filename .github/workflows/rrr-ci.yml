@@ -19,6 +19,7 @@ permissions:
 
 jobs:
   linux:
+    name: Linux ${{ matrix.platform.runner }} ${{ matrix.backend.name }}
     runs-on: ${{ matrix.platform.runner }}
     strategy:
       matrix:
@@ -27,11 +28,23 @@ jobs:
             target: x86_64
           - runner: ubuntu-24.04
             target: x86_64
+        backend:
+          - name: XPU
+            switch: false
+          - name: CUDA
+            switch: true
+
     steps:
       - uses: actions/checkout@v6
+
+      - name: Switch to CUDA
+        if: ${{ matrix.backend.switch }}
+        run: make switch
+
       - uses: actions/setup-python@v6
         with:
           python-version: "3.14"
+
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:
@@ -39,6 +52,7 @@ jobs:
           args: --release --out dist --find-interpreter
           sccache: ${{ !startsWith(github.ref, 'refs/tags/') }}
           manylinux: auto
+
       - name: Upload wheels
         uses: actions/upload-artifact@v6
         with:
