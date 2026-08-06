@@ -1,5 +1,5 @@
 [build-system]
-requires = ["maturin>=1.13.1"]
+requires = ["maturin>=1.14.1"]
 build-backend = "maturin"
 [tool.maturin]
 # Build artifacts with the specified Cargo profile
@@ -10,13 +10,13 @@ version = "0.1.12"
 description = "Touhou Reinforcement Learning Framework"
 requires-python = ">=3.14"
 dependencies = [
-  "matplotlib>=3.10.9",
-  "numpy>=2.4.3",
-  "packaging>=24.1",
+  "matplotlib>=3.11.1",
+  "numpy>=2.5.1",
+  "packaging>=26.2",
   "pandas>=3.0.5",
   "safetensors>=0.7.0",
   "torch==2.13.0+xpu",
-  "tqdm>=4.69.1",
+  "tqdm>=4.70.0",
 ]
 
 [tool.uv]
