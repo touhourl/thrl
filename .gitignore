@@ -12,3 +12,5 @@ dumps/
 uv.lock
 core/__pycache__/
 dist/
+docs/chapters/*.aux
+docs/*.aux

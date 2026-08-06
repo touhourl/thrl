@@ -1,9 +1,17 @@
 # thrl - A Touhou Reinforcement Learning Framework
+Cite this repository as following:
+```
+@article{Liu_A_High-Fidelity_Reinforcement_2026,
+author = {Liu, T.},
+doi = {10.5281/zenodo.21788472},
+title = {{A High-Fidelity Reinforcement Learning Environment and Baseline for Multi-Objective Bullet Hell Games}},
+year = {2026}
+}
+```
+# Requirements
 Currently, only GNU/Linux is supported. I do not have the enough time to do for Windows. You can try WSL2, but I won't promise that works.
 
-# Requirements
-You must have a GPU. 
-Supported GPU in this repo are [XPU](https://pytorch.org/get-started/additional-platforms/) and [CUDA](https://pytorch.org/).
+You must have a GPU. Supported GPU in this repo are [XPU](https://pytorch.org/get-started/additional-platforms/) and [CUDA](https://pytorch.org/).
 
 Use `make switch` to switch GPU before running any command.
 
