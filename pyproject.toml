@@ -12,7 +12,7 @@ requires-python = ">=3.14"
 dependencies = [
   "matplotlib>=3.11.1",
   "numpy>=2.5.1",
-  "packaging>=26.2",
+  "packaging>=26.3",
   "pandas>=3.0.5",
   "safetensors>=0.7.0",
   "torch==2.13.0+xpu",
