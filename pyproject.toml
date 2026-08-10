@@ -14,7 +14,7 @@ dependencies = [
   "numpy>=2.5.1",
   "packaging>=26.2",
   "pandas>=3.0.5",
-  "safetensors>=0.7.0",
+  "safetensors>=0.8.0",
   "torch==2.13.0+xpu",
   "tqdm>=4.70.0",
 ]
