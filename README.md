@@ -8,6 +8,13 @@ Cite the **paper** as following:
     year = {2026}
 }
 ```
+# Links
+Taisei Headless Simulation (WIP): [https://github.com/touhourl/taisei-sim](https://github.com/touhourl/taisei-sim)
+
+th98patch (patch for Mystic Square and Lotus Land Story): [https://codeberg.org/thrl/th98patch](https://codeberg.org/thrl/th98patch)
+
+thrl: [https://codeberg.org/thrl/thrl](https://codeberg.org/thrl/thrl)
+
 # Requirements
 Currently, only GNU/Linux is supported. I do not have the enough time to do for Windows. You can try WSL2, but I won't promise that works.
 
@@ -48,7 +55,7 @@ For PC-98 era games:
     curl -LsSf https://astral.sh/uv/install.sh | sh
     uv tool install maturin
     ```
-4. Patch your game executables. See repo th05patch. Place them at ./export/. 
+4. Patch your game executables. See repo th98patch. Place them at ./export/. 
 5. Use `make defconfig` to move core/defparam.py to core/param.py so you can run it.
 6.  ```shell
     maturin develop
