@@ -313,6 +313,7 @@ def train() -> None:
         # Wasted
 
         if RL_BY_HUMAN:
+            logging.warning("Experimental feature. Ensure you use a DE and used dosbox-x/test.conf")
             # Human training
             # TODO: Experimental feature.
             # The PPO ratio cannot be applied here.

@@ -30,7 +30,7 @@ pub enum Error {
     #[error("Process {pid} not found")]
     ProcessNotFound { pid: i32 },
 
-    #[error("Permission denied reading process {pid} memory. Try running with sudo")]
+    #[error("Permission denied reading process {pid} memory")]
     PermissionDenied { pid: i32 },
 
     #[error("Failed to read memory at address 0x{address:08X}: {source}")]

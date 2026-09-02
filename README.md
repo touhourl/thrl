@@ -57,20 +57,15 @@ For PC-98 era games:
     ```
 4. Patch your game executables. See repo th98patch. Place them at ./export/. 
 5. Use `make defconfig` to move core/defparam.py to core/param.py so you can run it.
+   Use `cp dosbox-x/test.conf export/default.conf` for testing, debugging, evulating and human mode.
+   Use `cp dosbox-x/headless.conf export/default.conf` for normal training.s
 6.  ```shell
     maturin develop
     uv sync
-    sudo $(eval echo ~$(whoami))/.local/bin/uv run main.py
+    sudo setcap -r "$(type -P dosbox-x)" # This doesn't affect game only network
+    uv run main.py
     ```
-    If using xvfb:
-    ```shell
-    sudo su
-    /path/to/uv run main.py
-    ```
-Fix permission issues:
-```shell
-sudo chmod -R 777 ./target .venv/
-```
+
 Build documentation:
 ```shell
 make docs
