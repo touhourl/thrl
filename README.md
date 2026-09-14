@@ -9,7 +9,7 @@ Cite the **paper** as following:
 }
 ```
 # Links
-Taisei Headless Simulation (WIP): [https://github.com/touhourl/taisei-sim](https://github.com/touhourl/taisei-sim)
+Taisei Headless Simulation: [https://github.com/touhourl/taisei-sim](https://github.com/touhourl/taisei-sim)
 
 th98patch (patch for Mystic Square and Lotus Land Story): [https://codeberg.org/thrl/th98patch](https://codeberg.org/thrl/th98patch)
 
@@ -58,7 +58,7 @@ For PC-98 era games:
 4. Patch your game executables. See repo th98patch. Place them at ./export/. 
 5. Use `make defconfig` to move core/defparam.py to core/param.py so you can run it.
    Use `cp dosbox-x/test.conf export/default.conf` for testing, debugging, evulating and human mode.
-   Use `cp dosbox-x/headless.conf export/default.conf` for normal training.s
+   Use `cp dosbox-x/headless.conf export/default.conf` for normal training.
 6.  ```shell
     maturin develop
     uv sync
