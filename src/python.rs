@@ -9,7 +9,7 @@ use std::io::ErrorKind;
 
 /*
     Rust-Python Bindings of rrr.
-    Copyright (C) 2026  T. Liu and contributors
+    Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

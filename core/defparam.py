@@ -7,6 +7,24 @@ import os
 import numpy as np
 import torch
 
+"""
+    Parameters of thrl.
+    Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
 # === Live adjustment after training started === #
 RL_BY_HUMAN = False
 RESET_OPTIMIZER_ON_RESUME = True

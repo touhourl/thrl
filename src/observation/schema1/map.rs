@@ -10,7 +10,7 @@
 //! Some of them are old and not used anymore, I don't wanna see code got deleted so
 //! kept for historical reasons.
 //!
-//! TODO: Remove unused maps after release to github and contributors starting to appear
+//! TODO: Remove unused maps after release to github and contributors of thrl project starting to appear
 //! See CONTRIBUTING.md:{Writing code}
 //!
 //! [copy]
@@ -18,7 +18,7 @@
 
 /*
     Map layout of rrr, RL-rs
-    Copyright (C) 2026  T. Liu and contributors
+    Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
