@@ -1,5 +1,4 @@
-pub struct TH05Offsets;
-
+pub struct TH05COffsets;
 
 /*
     Offsets of TH05 of rrr.
@@ -21,7 +20,7 @@ pub struct TH05Offsets;
 
 /// You might want to see the .map files in another repo.
 /// the R means resident, P means player, B means bullets and E means enemy.
-impl TH05Offsets {
+impl TH05COffsets {
     /// Runtime offset: resident structure base (KSOConfig) to player_pos.
     /// This is the actual distance in memory from the resident structure to player_pos.
     /// It is **not** pointer, I swear.
@@ -75,9 +74,9 @@ impl TH05Offsets {
     pub const P2FIREWAVES: isize = -0x48;
 }
 
-pub struct TH05Stride;
+pub struct TH05CStride;
 /// They are strides in bytes, not bit nor any other things like int or bool...
-impl TH05Stride {
+impl TH05CStride {
     /// th05 has 6 extra bytes compared to th04.
     pub const BULLET_STRIDE: usize = 32;
     pub const ENEMY_STRIDE: usize = 64;

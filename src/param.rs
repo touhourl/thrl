@@ -1,11 +1,15 @@
+//! Parameter constants. Was `param.rs` before.
 //! This file provides compiled configs
 //! so we just need to modify it while changing things
 //! like game variable, logging, etc
 //!
 
+use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
+use std::sync::OnceLock;
 
 /*
-    Parameters of rrr.
+    Parameter constants of RL-rs, rrr, thrl.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify
@@ -21,49 +25,81 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-use crate::games::th05_c::key::DiscreteAction;
-pub struct TrainingConfig;
-impl TrainingConfig {
-    pub const REWARD_SCALE: f32 = 0.01;
-    pub const LEARNING_RATE: f32 = 1e-4;
-    pub const GAMMA: f32 = 0.99;
-    pub const LAMBDA: f32 = 0.97;
-    pub const CLIP_EPSILON: f32 = 0.2;
-    pub const VALUE_COEFF: f32 = 0.5;
-    pub const ENTROPY_COEFF_START: f32 = 0.05;
-    pub const ENTROPY_COEFF_END: f32 = 0.001;
-    pub const ENTROPY_ANNEAL_UPDATES: usize = 3000;
-    pub const PPO_EPOCHS: usize = 4;
-    pub const MINI_BATCH_SIZE: usize = 64;
-    pub const HORIZON: usize = 2048;
-    pub const HIDDEN_DIM: usize = 512;
-    pub const ACTION_DIM: usize = DiscreteAction::size();
-    pub const ADVANTAGE_NORM_EPSILON: f32 = 1e-8;
-    pub const PROB_EPSILON: f32 = 1e-8;
-    pub const LOGIT_CLAMP: f32 = 80.0;
-    pub const LOG_RATIO_CLAMP: f32 = 20.0;
-    pub const FRAME_INTERVAL_MS: u64 = 53; // 3 Frame Skipping
-    pub const MAX_GRAD_NORM: f32 = 0.5;
-    pub const DEV: &str = "GPU";
-    pub const CNN_HIDDEN_CHANNELS: [usize; 3] = [32, 64, 64];
-    pub const CNN_EMBED_DIM: usize = 128;
-    pub const CNN_POOL_OUT: [usize; 2] = [6, 6];
-    pub const FEATURE_PROJECT_DIM: usize = 128;
-    pub const GRU_HIDDEN_SIZE: usize = 256;
-    pub const SEQ_LEN: usize = 16;
-    /// Feature dim: player(17) + boss(14) + state(6) + projectile_entities(112) +
-    /// bullet_entities(112) + drop(12) = 273
-    pub const FEATURE_DIM: usize = 273;
-    /// Map channels: bullet(6) + enemy(6) + projectile_merged(6) + boss(6) = 24
-    pub const MAP_CHANNELS: usize = 24;
 
-    pub fn entropy_coeff(update_step: usize) -> f32 {
-        if Self::ENTROPY_ANNEAL_UPDATES == 0 {
-            return Self::ENTROPY_COEFF_END;
+// If we say python is PyObjects/dics, C is Pointers, C++ is <(::)>s,
+// HTML is </>s, JavaScript is [object Object]s, then, rust is just structs.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RuntimeConfig {
+    #[serde(skip)]
+    pub raw: toml::Table,
+    pub runtime: RuntimeSettings,
+    pub paths: PathSettings,
+    #[serde(skip_serializing)]
+    pub worker: WorkerSettings,
+    pub reward: RewardSettings,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RuntimeSettings {
+    // === Live adjustment after training started === #
+    pub rl_by_human: bool,
+    pub game: String,
+    pub schema: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PathSettings {
+    // === PATH === #
+    pub log_dir: String,
+    pub curriculum_file: String,
+    pub curriculum_state_file: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkerSettings {
+    // === WORKER SETTINGS === #
+    pub num_workers: usize,
+    pub human_num_workers: usize,
+    pub chunk_size: usize,
+    pub off_policy: bool,
+    pub max_policy_staleness: usize,
+    pub restart_sleep_ms: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RewardSettings {
+    // === REWARD === # TODO: do it in rust. This is test and experimental, and I need quick changes. Compiling and wait the `uv` to finish managing packages are such a pain
+    pub scales: Vec<f32>,
+}
+
+static RUNTIME_CONFIG: OnceLock<RuntimeConfig> = OnceLock::new();
+
+impl RuntimeConfig {
+    pub fn load() -> Result<Self, String> {
+        let path = std::env::var_os("RRR_CONFIG")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("rrr.toml"));
+        let text = std::fs::read_to_string(&path)
+            .map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
+        let raw: toml::Table = toml::from_str(&text)
+            .map_err(|e| format!("Failed to parse {}: {e}", path.display()))?;
+        let mut cfg: Self = toml::from_str(&text)
+            .map_err(|e| format!("Failed to parse {}: {e}", path.display()))?;
+        cfg.raw = raw;
+        std::fs::create_dir_all(&cfg.paths.log_dir).map_err(|e| e.to_string())?;
+        Ok(cfg)
+    }
+
+    pub fn global() -> &'static Self {
+        RUNTIME_CONFIG.get_or_init(|| Self::load().unwrap_or_else(|e| panic!("{e}")))
+    }
+
+    pub fn num_workers(&self) -> usize {
+        if self.runtime.rl_by_human {
+            self.worker.human_num_workers
+        } else {
+            self.worker.num_workers
         }
-
-        let t = (update_step as f32 / Self::ENTROPY_ANNEAL_UPDATES as f32).min(1.0);
-        Self::ENTROPY_COEFF_START + t * (Self::ENTROPY_COEFF_END - Self::ENTROPY_COEFF_START)
     }
 }
 

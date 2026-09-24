@@ -321,3 +321,5 @@ impl GameState {
         }
     }
 }
+
+pub type Frame = GameState;

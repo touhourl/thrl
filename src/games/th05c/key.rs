@@ -26,16 +26,16 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-use super::offsets::TH05Offsets;
+use super::offsets::TH05COffsets;
 use crate::error::Result;
 use crate::memory::ProcessMemory;
 
 pub fn key_det_player_pos(player_pos: usize) -> usize {
-    (player_pos as isize + TH05Offsets::P2KEY_DET) as usize
+    (player_pos as isize + TH05COffsets::P2KEY_DET) as usize
 }
 
 pub fn shiftkey_player_pos(player_pos: usize) -> usize {
-    (player_pos as isize + TH05Offsets::P2SHIFT_KEY) as usize
+    (player_pos as isize + TH05COffsets::P2SHIFT_KEY) as usize
 }
 
 #[repr(C)]

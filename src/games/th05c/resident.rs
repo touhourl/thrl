@@ -1,7 +1,7 @@
 //! Resident structure finder.
 
 use crate::error::{Error, Result};
-use crate::games::th05_c::offsets;
+use crate::games::th05c::offsets;
 use crate::memory::ProcessMemory;
 #[allow(unused)]
 const SCORE_DIGITS: usize = 8; //Counted by me

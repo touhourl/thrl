@@ -1,0 +1,78 @@
+[runtime]
+rl_by_human = false
+reset_optimizer_on_resume = true
+reset_lambda_on_resume = false
+game = "th05c"
+schema = 1
+algorithm = "moppo"
+
+[paths]
+log_dir = "./logs"
+export_dir = "./export"
+cfg_file = "KAIKII.CFG"
+model_save_dir = "./models"
+curriculum_file = "./curriculum.json"
+curriculum_state_file = "./logs/curriculum_state.json"
+
+[training]
+learning_rate = 0.0001
+gamma = 0.995
+lambda_gae = 0.98
+clip_epsilon = 0.2
+value_coeff = 0.5
+entropy_coeff_start = 0.05
+entropy_coeff_end = 0.01
+entropy_anneal_updates = 5000
+ppo_epochs = 3
+human_bc_epochs = 3
+human_adv_weight_beta = 0.5
+human_adv_weight_min = 0.25
+human_adv_weight_max = 4.0
+horizon = 2048
+logit_clamp = 80.0
+max_grad_norm = 0.5
+
+[worker]
+num_workers = 4
+human_num_workers = 1
+chunk_size = 64
+off_policy = false
+max_policy_staleness = 2
+frame_interval_ms = 36
+action_repeat_sleep_ms = 5
+episode_cooldown_ms = 4000
+initial_state_attempts = 100
+initial_state_sleep_ms = 200
+reconnect_attempts = 50
+reconnect_sleep_ms = 100
+restart_sleep_ms = 1000
+
+[model]
+feature_project_dim = 128
+cnn_embed_dim = 128
+cnn_pool_out = [6, 6]
+cnn_hidden_channels = [32, 64, 64]
+hidden_dim = 512
+gru_hidden_size = 256
+num_objectives = 3
+action_dim = 19
+
+[gru]
+seq_len = 16
+seqs_per_batch = 4
+
+[observation]
+grid_w = 96
+grid_h = 92
+feature_dim = 273
+map_channels = 24
+
+[reward]
+scales = [0.01, 0.001, 0.01]
+
+[lagrangian]
+max_death_rate = 0.002
+dual_lr = 1.0
+dual_max = 3.0
+dual_min = 0.01
+initial_lambda = 1.0

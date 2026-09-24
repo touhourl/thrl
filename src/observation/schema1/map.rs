@@ -33,7 +33,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-use crate::games::th05_c::types::*;
+use crate::observation::frame::*;
 use serde::{Deserialize, Serialize};
 
 const BULLETMAP_EDGE_SOFTNESS: f32 = 0.2;
@@ -253,7 +253,7 @@ pub type BulletMap = SpatialMap;
 
 impl BulletMap {
     pub fn from_game_state(
-        state: &GameState,
+        state: &Frame,
         grid_w: usize,
         grid_h: usize,
         span_x_px: f32,
@@ -288,7 +288,7 @@ impl BulletFeature {
 
 /// Extract top-K nearest bullets as direct MLP features.
 /// Returns K * 7 = 112 floats, zeros if fewer than K bullets active.
-pub fn extract_bullet_entities(state: &GameState, span_x_px: f32, span_y_px: f32) -> Vec<f32> {
+pub fn extract_bullet_entities(state: &Frame, span_x_px: f32, span_y_px: f32) -> Vec<f32> {
     let (px, py) = state.player.pos.to_pixels();
     let max_dist = (span_x_px.powi(2) + span_y_px.powi(2)).sqrt();
 
@@ -333,7 +333,7 @@ pub type BossMap = SpatialMap;
 
 impl BossMap {
     pub fn from_game_state_bosses(
-        state: &GameState,
+        state: &Frame,
         grid_w: usize,
         grid_h: usize,
         span_x_px: f32,
@@ -344,45 +344,48 @@ impl BossMap {
 
         // Add main boss if present
         if let Some(boss) = &state.boss
-            && boss.hp > 0 {
-                let (bx, by) = boss.pos.to_pixels();
-                // Type ID: 0.0 for main boss
-                bosses.push(AbsoluteEntity {
-                    x: bx,
-                    y: by,
-                    vx: boss.pos.velocity_pixels().0,
-                    vy: boss.pos.velocity_pixels().1,
-                    type_id: 0.0,
-                });
-            }
+            && boss.hp > 0
+        {
+            let (bx, by) = boss.pos.to_pixels();
+            // Type ID: 0.0 for main boss
+            bosses.push(AbsoluteEntity {
+                x: bx,
+                y: by,
+                vx: boss.pos.velocity_pixels().0,
+                vy: boss.pos.velocity_pixels().1,
+                type_id: 0.0,
+            });
+        }
 
         // Add second boss if present
         if let Some(boss_2) = &state.boss_2
-            && boss_2.hp > 0 {
-                let (bx, by) = boss_2.pos.to_pixels();
-                // Type ID: 0.33 for second boss
-                bosses.push(AbsoluteEntity {
-                    x: bx,
-                    y: by,
-                    vx: boss_2.pos.velocity_pixels().0,
-                    vy: boss_2.pos.velocity_pixels().1,
-                    type_id: 1.0 / 3.0,
-                });
-            }
+            && boss_2.hp > 0
+        {
+            let (bx, by) = boss_2.pos.to_pixels();
+            // Type ID: 0.33 for second boss
+            bosses.push(AbsoluteEntity {
+                x: bx,
+                y: by,
+                vx: boss_2.pos.velocity_pixels().0,
+                vy: boss_2.pos.velocity_pixels().1,
+                type_id: 1.0 / 3.0,
+            });
+        }
 
         // Add midboss if present
         if let Some(midboss) = &state.midboss
-            && midboss.hp > 0 {
-                let (bx, by) = midboss.pos.to_pixels();
-                // Type ID: 0.67 for midboss
-                bosses.push(AbsoluteEntity {
-                    x: bx,
-                    y: by,
-                    vx: midboss.pos.velocity_pixels().0,
-                    vy: midboss.pos.velocity_pixels().1,
-                    type_id: 2.0 / 3.0,
-                });
-            }
+            && midboss.hp > 0
+        {
+            let (bx, by) = midboss.pos.to_pixels();
+            // Type ID: 0.67 for midboss
+            bosses.push(AbsoluteEntity {
+                x: bx,
+                y: by,
+                vx: midboss.pos.velocity_pixels().0,
+                vy: midboss.pos.velocity_pixels().1,
+                type_id: 2.0 / 3.0,
+            });
+        }
 
         Self::from_entities(bosses, px, py, grid_w, grid_h, span_x_px, span_y_px)
     }
@@ -391,7 +394,7 @@ pub type EnemyMap = SpatialMap;
 
 impl EnemyMap {
     pub fn from_game_state_enemies(
-        state: &GameState,
+        state: &Frame,
         grid_w: usize,
         grid_h: usize,
         span_x_px: f32,
@@ -417,7 +420,7 @@ pub type DropMap = SpatialMap;
 
 impl DropMap {
     pub fn from_game_state_items(
-        state: &GameState,
+        state: &Frame,
         grid_w: usize,
         grid_h: usize,
         span_x_px: f32,
@@ -489,7 +492,7 @@ impl LaserMap {
     ///
     /// TODO: New type for rendered laser and actually hitbox lasers.
     pub fn from_lasers(
-        lasers: &[crate::games::th05_c::types::Laser],
+        lasers: &[crate::observation::frame::Laser],
         player_x: f32,
         player_y: f32,
         grid_w: usize,
@@ -595,7 +598,7 @@ impl FirewaveMap {
     /// Create a firewave map by sampling points along the sine wave.
     /// TODO: fill? Or don't fill?
     pub fn from_firewaves(
-        firewaves: &[crate::games::th05_c::types::Firewave],
+        firewaves: &[crate::observation::frame::Firewave],
         player_x: f32,
         player_y: f32,
         grid_w: usize,
@@ -649,7 +652,7 @@ impl CheetoMap {
     /// From like 15, 13, ... 1 (1 is the head, or we can say, 0)
     /// flags: CF_DECELERATE (1) = slowing down, CF_SPEEDUP (2) = speeding up
     pub fn from_cheeto_trails(
-        trails: &[crate::games::th05_c::types::CheetoTrail],
+        trails: &[crate::observation::frame::CheetoTrail],
         player_x: f32,
         player_y: f32,
         grid_w: usize,
@@ -693,7 +696,7 @@ pub type CustomEntityMap = SpatialMap;
 impl CustomEntityMap {
     /// Create a custom entity map from custom entities.
     pub fn from_custom_entities(
-        entities: &[crate::games::th05_c::types::CustomEntity],
+        entities: &[crate::observation::frame::CustomEntity],
         player_x: f32,
         player_y: f32,
         grid_w: usize,
@@ -776,10 +779,10 @@ struct RawProjectile {
 }
 
 pub fn extract_projectile_entities(
-    lasers: &[crate::games::th05_c::types::Laser],
-    firewaves: &[crate::games::th05_c::types::Firewave],
-    cheeto_trails: &[crate::games::th05_c::types::CheetoTrail],
-    custom_entities: &[crate::games::th05_c::types::CustomEntity],
+    lasers: &[crate::observation::frame::Laser],
+    firewaves: &[crate::observation::frame::Firewave],
+    cheeto_trails: &[crate::observation::frame::CheetoTrail],
+    custom_entities: &[crate::observation::frame::CustomEntity],
     player_x: f32,
     player_y: f32,
     span_x_px: f32,
@@ -918,10 +921,10 @@ pub type ProjectileMap = SpatialMap;
 
 impl ProjectileMap {
     pub fn from_all_projectiles(
-        lasers: &[crate::games::th05_c::types::Laser],
-        firewaves: &[crate::games::th05_c::types::Firewave],
-        cheeto_trails: &[crate::games::th05_c::types::CheetoTrail],
-        custom_entities: &[crate::games::th05_c::types::CustomEntity],
+        lasers: &[crate::observation::frame::Laser],
+        firewaves: &[crate::observation::frame::Firewave],
+        cheeto_trails: &[crate::observation::frame::CheetoTrail],
+        custom_entities: &[crate::observation::frame::CustomEntity],
         player_x: f32,
         player_y: f32,
         grid_w: usize,
@@ -1029,7 +1032,7 @@ impl DropFeatures {
     pub const TOTAL_FEATURES: usize = Self::MAX_ITEMS * Self::FEATURES_PER_ITEM; // 12
 
     pub fn from_game_state(
-        state: &crate::games::th05_c::types::GameState,
+        state: &crate::observation::frame::Frame,
         span_x_px: f32,
         span_y_px: f32,
     ) -> Self {

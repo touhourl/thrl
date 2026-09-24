@@ -1,4 +1,4 @@
-use crate::games::th05_c::types::GameState;
+use crate::observation::frame::Frame;
 use serde::{Deserialize, Serialize};
 
 /*
@@ -50,7 +50,7 @@ pub struct PlayerFeatures {
 }
 
 impl PlayerFeatures {
-    pub fn from_game_state(state: &GameState) -> Self {
+    pub fn from_game_state(state: &Frame) -> Self {
         let (px, py) = state.player.pos.to_pixels();
         let (vx, vy) = state.player.pos.velocity_pixels();
         let x_norm = ((px - MIN_X) / RANGE_X).clamp(0.0, 1.0);

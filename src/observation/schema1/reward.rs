@@ -1,4 +1,4 @@
-use crate::games::th05_c::types::GameState;
+use crate::observation::frame::Frame;
 
 /*
     Reward algorithm of rrr.
@@ -49,7 +49,7 @@ const RANGE_Y: f32 = MAX_Y - MIN_Y;
 /// Complexity ++, and my finger burn-rs also.
 ///
 /// Returns: $r_\text{survival}, r_\text{fight}, r_\text{resource}$.
-pub fn calculate_reward_m(prev_state: Option<&GameState>, curr_state: &GameState) -> Vec<f32> {
+pub fn calculate_reward_m(prev_state: Option<&Frame>, curr_state: &Frame) -> Vec<f32> {
     let Some(prev) = prev_state else {
         return vec![0.0, 0.0, 0.0];
     };
@@ -75,7 +75,6 @@ pub fn calculate_reward_m(prev_state: Option<&GameState>, curr_state: &GameState
 
     rewards[1] += boss_damage_reward(prev, curr_state);
 
-
     if curr_state.resident.miss_count > prev.resident.miss_count {
         let unused_bombs = prev.rem_bombs_internal as f32;
         rewards[2] -= unused_bombs * Reward::BOMB_REWARD;
@@ -97,12 +96,12 @@ pub fn calculate_reward_m(prev_state: Option<&GameState>, curr_state: &GameState
     rewards.to_vec()
 }
 
-pub fn calculate_reward(prev_state: Option<&GameState>, curr_state: &GameState) -> f32 {
+pub fn calculate_reward(prev_state: Option<&Frame>, curr_state: &Frame) -> f32 {
     calculate_reward_internal(prev_state, curr_state, true)
 }
 fn calculate_reward_internal(
-    prev_state: Option<&GameState>,
-    curr_state: &GameState,
+    prev_state: Option<&Frame>,
+    curr_state: &Frame,
     include_positive_rewards: bool,
 ) -> f32 {
     let Some(prev) = prev_state else {
@@ -149,25 +148,34 @@ fn calculate_reward_internal(
 }
 
 /// Added for 2nd boss in th05.
-fn boss_damage_reward(prev_state: &GameState, curr_state: &GameState) -> f32 {
+fn boss_damage_reward(prev_state: &Frame, curr_state: &Frame) -> f32 {
     let mut reward = 0.0f32;
 
     if let (Some(prev_boss), Some(curr_boss)) = (&prev_state.boss, &curr_state.boss)
-        && prev_boss.hp > 0 && curr_boss.hp > 0 && curr_boss.hp < prev_boss.hp {
-            let damage = (prev_boss.hp - curr_boss.hp) as f32;
-            reward += damage * Reward::BOSS_DAMAGE_REWARD;
-        }
+        && prev_boss.hp > 0
+        && curr_boss.hp > 0
+        && curr_boss.hp < prev_boss.hp
+    {
+        let damage = (prev_boss.hp - curr_boss.hp) as f32;
+        reward += damage * Reward::BOSS_DAMAGE_REWARD;
+    }
 
     if let (Some(prev_boss_2), Some(curr_boss_2)) = (&prev_state.boss_2, &curr_state.boss_2)
-        && prev_boss_2.hp > 0 && curr_boss_2.hp > 0 && curr_boss_2.hp < prev_boss_2.hp {
-            let damage = (prev_boss_2.hp - curr_boss_2.hp) as f32;
-            reward += damage * Reward::BOSS_DAMAGE_REWARD;
-        }
+        && prev_boss_2.hp > 0
+        && curr_boss_2.hp > 0
+        && curr_boss_2.hp < prev_boss_2.hp
+    {
+        let damage = (prev_boss_2.hp - curr_boss_2.hp) as f32;
+        reward += damage * Reward::BOSS_DAMAGE_REWARD;
+    }
     if let (Some(prev_mid), Some(curr_mid)) = (&prev_state.midboss, &curr_state.midboss)
-        && prev_mid.hp > 0 && curr_mid.hp > 0 && curr_mid.hp < prev_mid.hp {
-            let damage = (prev_mid.hp - curr_mid.hp) as f32;
-            reward += damage * Reward::BOSS_DAMAGE_REWARD;
-        }
+        && prev_mid.hp > 0
+        && curr_mid.hp > 0
+        && curr_mid.hp < prev_mid.hp
+    {
+        let damage = (prev_mid.hp - curr_mid.hp) as f32;
+        reward += damage * Reward::BOSS_DAMAGE_REWARD;
+    }
 
     let prev_midboss_alive = prev_state.midboss.as_ref().is_some_and(|b| b.hp > 0);
     let curr_midboss_alive = curr_state.midboss.as_ref().is_some_and(|b| b.hp > 0);

@@ -23,14 +23,14 @@ pub fn enemy_array(mem: &mut ProcessMemory, bullets_addr: usize) -> Result<usize
     tracing::info!("Searching for enemy array via offset...");
 
     // Calc the thing directly using +
-    let candidate = bullets_addr + TH05Offsets::B2ENEMIES;
-    let data = mem.read(candidate, TH05Stride::ENEMY_STRIDE * 8)?;
+    let candidate = bullets_addr + TH05COffsets::B2ENEMIES;
+    let data = mem.read(candidate, TH05CStride::ENEMY_STRIDE * 8)?;
 
     let mut valid = 0usize;
-    let checked = 8.min(data.len() / TH05Stride::ENEMY_STRIDE);
+    let checked = 8.min(data.len() / TH05CStride::ENEMY_STRIDE);
     // we still use from le bytes cuz we ain't sure other than playfieldmotions
     for i in 0..checked {
-        let b = i * TH05Stride::ENEMY_STRIDE;
+        let b = i * TH05CStride::ENEMY_STRIDE;
         let flag = data[b];
         let age = data[b + 1];
         let hp = i16::from_le_bytes([data[b + 14], data[b + 15]]);

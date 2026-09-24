@@ -22,14 +22,14 @@ use crate::memory::ProcessMemory;
 pub fn bullet_array(mem: &mut ProcessMemory, player_pos: usize) -> Result<usize> {
     tracing::info!("Searching for bullet array via offset...");
 
-    let candidate = (player_pos as isize + TH05Offsets::P2BULLETS) as usize;
-    let sample = mem.read(candidate, TH05Stride::BULLET_STRIDE * 64)?;
+    let candidate = (player_pos as isize + TH05COffsets::P2BULLETS) as usize;
+    let sample = mem.read(candidate, TH05CStride::BULLET_STRIDE * 64)?;
 
     let mut valid = 0usize;
-    let checked = 64.min(sample.len() / TH05Stride::BULLET_STRIDE);
+    let checked = 64.min(sample.len() / TH05CStride::BULLET_STRIDE);
 
     for i in 0..checked {
-        let base = i * TH05Stride::BULLET_STRIDE;
+        let base = i * TH05CStride::BULLET_STRIDE;
         let flag = sample[base];
         let age = sample[base + 1];
         let spawn_flag = sample[base + 18];

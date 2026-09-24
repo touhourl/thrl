@@ -136,7 +136,7 @@ pub fn resident_t(
 }
 
 pub fn bullet(mem: &mut ProcessMemory, addr: usize) -> Result<Bullet> {
-    let data = mem.read(addr, TH05Stride::BULLET_STRIDE)?;
+    let data = mem.read(addr, TH05CStride::BULLET_STRIDE)?;
 
     if data.len() < 26 {
         return Err(Error::InvalidGameState {
@@ -168,11 +168,12 @@ pub fn all_bullets(mem: &mut ProcessMemory, bullets_addr: usize) -> Vec<Bullet> 
     let mut bullets = Vec::with_capacity(TH05ArrayLength::BULLET_COUNT);
 
     for i in 0..TH05ArrayLength::BULLET_COUNT {
-        let addr = bullets_addr + i * TH05Stride::BULLET_STRIDE;
+        let addr = bullets_addr + i * TH05CStride::BULLET_STRIDE;
         if let Ok(bullet) = bullet(mem, addr)
-            && bullet.flag != 0 {
-                bullets.push(bullet);
-            }
+            && bullet.flag != 0
+        {
+            bullets.push(bullet);
+        }
     }
 
     bullets
@@ -180,9 +181,9 @@ pub fn all_bullets(mem: &mut ProcessMemory, bullets_addr: usize) -> Vec<Bullet> 
 
 /// Read a single item from address.
 pub fn item(mem: &mut ProcessMemory, addr: usize) -> Option<Item> {
-    let data = mem.try_read(addr, TH05Stride::ITEM_STRIDE)?;
+    let data = mem.try_read(addr, TH05CStride::ITEM_STRIDE)?;
 
-    if data.len() < TH05Stride::ITEM_STRIDE {
+    if data.len() < TH05CStride::ITEM_STRIDE {
         return None;
     }
 
@@ -219,15 +220,15 @@ pub fn item(mem: &mut ProcessMemory, addr: usize) -> Option<Item> {
 }
 
 pub fn all_items(mem: &mut ProcessMemory, items_addr: usize) -> Vec<Item> {
-    let total_size = TH05ArrayLength::ITEM_COUNT * TH05Stride::ITEM_STRIDE;
+    let total_size = TH05ArrayLength::ITEM_COUNT * TH05CStride::ITEM_STRIDE;
     let Ok(data) = mem.read(items_addr, total_size) else {
         return Vec::new();
     };
 
     (0..TH05ArrayLength::ITEM_COUNT)
         .filter_map(|i| {
-            let offset = i * TH05Stride::ITEM_STRIDE;
-            let d = data.get(offset..offset + TH05Stride::ITEM_STRIDE)?;
+            let offset = i * TH05CStride::ITEM_STRIDE;
+            let d = data.get(offset..offset + TH05CStride::ITEM_STRIDE)?;
             let flag = d[0];
             if flag == 0 || !matches!(flag, 1 | 2) {
                 return None;
@@ -256,7 +257,7 @@ pub fn all_items(mem: &mut ProcessMemory, items_addr: usize) -> Vec<Item> {
 
 /// Read a single enemy from address.
 pub fn read_enemy(mem: &mut ProcessMemory, addr: usize) -> Option<Enemy> {
-    let data = mem.try_read(addr, TH05Stride::ENEMY_STRIDE)?;
+    let data = mem.try_read(addr, TH05CStride::ENEMY_STRIDE)?;
 
     if data.len() < 64 {
         return None;
@@ -320,10 +321,11 @@ pub fn all_enemies(mem: &mut ProcessMemory, enemies_addr: usize) -> Vec<Enemy> {
     let mut enemies = Vec::with_capacity(TH05ArrayLength::ENEMY_COUNT);
 
     for i in 0..TH05ArrayLength::ENEMY_COUNT {
-        if let Some(enemy) = read_enemy(mem, enemies_addr + i * TH05Stride::ENEMY_STRIDE)
-            && enemy.flag != 0 {
-                enemies.push(enemy);
-            }
+        if let Some(enemy) = read_enemy(mem, enemies_addr + i * TH05CStride::ENEMY_STRIDE)
+            && enemy.flag != 0
+        {
+            enemies.push(enemy);
+        }
     }
 
     enemies
@@ -368,7 +370,9 @@ pub fn midboss(
 
     let (x, y) = pos.to_pixels();
     // Midboss position must be within playfield bounds.
-    if !(0.0..=TH05Config::PLAYFIELD_W).contains(&x) || !(0.0..=TH05Config::PLAYFIELD_H).contains(&y) {
+    if !(0.0..=TH05Config::PLAYFIELD_W).contains(&x)
+        || !(0.0..=TH05Config::PLAYFIELD_H).contains(&y)
+    {
         return None;
     }
 
@@ -425,24 +429,28 @@ pub fn stage_collection_state(
     let mut state = StageCollectionState::default();
 
     if let Some(addr) = stage_point_items_addr
-        && let Ok(v) = mem.read_u8(addr) {
-            state.point_items_stage = v;
-        }
+        && let Ok(v) = mem.read_u8(addr)
+    {
+        state.point_items_stage = v;
+    }
 
     if let Some(addr) = dream_items_addr
-        && let Ok(v) = mem.read_u8(addr) {
-            state.dream_items = v;
-        }
+        && let Ok(v) = mem.read_u8(addr)
+    {
+        state.dream_items = v;
+    }
 
     if let Some(addr) = stage_graze_addr
-        && let Ok(v) = mem.read_u16_le(addr) {
-            state.stage_graze = v;
-        }
+        && let Ok(v) = mem.read_u16_le(addr)
+    {
+        state.stage_graze = v;
+    }
 
     if let Some(addr) = dream_score_addr
-        && let Ok(v) = mem.read_u16_le(addr) {
-            state.dream_score = v * 10;
-        }
+        && let Ok(v) = mem.read_u16_le(addr)
+    {
+        state.dream_score = v * 10;
+    }
 
     state
 }
@@ -474,9 +482,9 @@ fn live_score(mem: &mut ProcessMemory, player_pos: usize) -> Option<u64> {
 }
 
 pub fn custom_entity(mem: &mut ProcessMemory, addr: usize) -> Option<CustomEntity> {
-    let data = mem.try_read(addr, TH05Stride::CE_STRIDE)?;
+    let data = mem.try_read(addr, TH05CStride::CE_STRIDE)?;
 
-    if data.len() < TH05Stride::CE_STRIDE {
+    if data.len() < TH05CStride::CE_STRIDE {
         return None;
     }
 
@@ -517,19 +525,20 @@ pub fn all_custom_entities(mem: &mut ProcessMemory, custom_addr: usize) -> Vec<C
     let mut entities = Vec::with_capacity(TH05ArrayLength::CUSTOM_COUNT);
 
     for i in 0..TH05ArrayLength::CUSTOM_COUNT {
-        if let Some(entity) = custom_entity(mem, custom_addr + i * TH05Stride::CE_STRIDE)
-            && entity.flag != 0 {
-                entities.push(entity);
-            }
+        if let Some(entity) = custom_entity(mem, custom_addr + i * TH05CStride::CE_STRIDE)
+            && entity.flag != 0
+        {
+            entities.push(entity);
+        }
     }
 
     entities
 }
 
 pub fn firewave(mem: &mut ProcessMemory, addr: usize) -> Option<Firewave> {
-    let data = mem.try_read(addr, TH05Stride::FIREWAVE_STRIDE)?;
+    let data = mem.try_read(addr, TH05CStride::FIREWAVE_STRIDE)?;
 
-    if data.len() < TH05Stride::FIREWAVE_STRIDE {
+    if data.len() < TH05CStride::FIREWAVE_STRIDE {
         return None;
     }
 
@@ -545,19 +554,20 @@ pub fn all_firewaves(mem: &mut ProcessMemory, firewave_addr: usize) -> Vec<Firew
     let mut firewaves = Vec::with_capacity(TH05ArrayLength::FIREWAVE_COUNT);
 
     for i in 0..TH05ArrayLength::FIREWAVE_COUNT {
-        if let Some(firewave) = firewave(mem, firewave_addr + i * TH05Stride::FIREWAVE_STRIDE)
-            && firewave.alive != 0 {
-                firewaves.push(firewave);
-            }
+        if let Some(firewave) = firewave(mem, firewave_addr + i * TH05CStride::FIREWAVE_STRIDE)
+            && firewave.alive != 0
+        {
+            firewaves.push(firewave);
+        }
     }
 
     firewaves
 }
 
 pub fn laser(mem: &mut ProcessMemory, addr: usize) -> Option<Laser> {
-    let data = mem.try_read(addr, TH05Stride::LASER_STRIDE)?;
+    let data = mem.try_read(addr, TH05CStride::LASER_STRIDE)?;
 
-    if data.len() < TH05Stride::LASER_STRIDE {
+    if data.len() < TH05CStride::LASER_STRIDE {
         return None;
     }
 
@@ -584,7 +594,7 @@ pub fn all_lasers(mem: &mut ProcessMemory, lasers_addr: usize) -> Vec<Laser> {
     let mut lasers = Vec::with_capacity(TH05ArrayLength::LASER_COUNT);
 
     for i in 0..TH05ArrayLength::LASER_COUNT {
-        if let Some(laser) = laser(mem, lasers_addr + i * TH05Stride::LASER_STRIDE) {
+        if let Some(laser) = laser(mem, lasers_addr + i * TH05CStride::LASER_STRIDE) {
             lasers.push(laser);
         }
     }
@@ -593,9 +603,9 @@ pub fn all_lasers(mem: &mut ProcessMemory, lasers_addr: usize) -> Vec<Laser> {
 }
 
 pub fn cheeto_trail(mem: &mut ProcessMemory, addr: usize) -> Option<CheetoTrail> {
-    let data = mem.try_read(addr, TH05Stride::CHEETO_STRIDE)?;
+    let data = mem.try_read(addr, TH05CStride::CHEETO_STRIDE)?;
 
-    if data.len() < TH05Stride::CHEETO_STRIDE {
+    if data.len() < TH05CStride::CHEETO_STRIDE {
         return None;
     }
 
@@ -622,7 +632,7 @@ pub fn all_cheeto_trails(mem: &mut ProcessMemory, cheeto_addr: usize) -> Vec<Che
     let mut trails = Vec::with_capacity(TH05ArrayLength::CHEETO_TRAIL_COUNT);
 
     for i in 0..TH05ArrayLength::CHEETO_TRAIL_COUNT {
-        if let Some(trail) = cheeto_trail(mem, cheeto_addr + i * TH05Stride::CHEETO_STRIDE) {
+        if let Some(trail) = cheeto_trail(mem, cheeto_addr + i * TH05CStride::CHEETO_STRIDE) {
             trails.push(trail);
         }
     }

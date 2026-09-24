@@ -1,4 +1,4 @@
-use crate::games::th05_c::types::GameState;
+use crate::observation::frame::Frame;
 use serde::{Deserialize, Serialize};
 
 /*
@@ -40,7 +40,7 @@ pub struct BossFeatures {
 }
 
 impl BossFeatures {
-    pub fn from_game_state(state: &GameState) -> Self {
+    pub fn from_game_state(state: &Frame) -> Self {
         let (px, py) = state.player.pos.to_pixels();
 
         let boss = state

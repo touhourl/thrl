@@ -4,11 +4,11 @@
 #os.environ["SYCL_CACHE_DIR"] = os.path.expanduser("~~~~/~~~.cache/sycl") // how stupid I was forgetting...
 import logging
 import sys
-from core.train import train
+from core.algorithms import train
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s [%(processName)s] %(levelname)s %(message)s",
+    format="%(asctime)s %(levelname)s %(message)s",
     stream=sys.stdout,
     force=True,
 )

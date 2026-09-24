@@ -1,0 +1,29 @@
+[
+  {
+    "when": "start",
+    "type": "fn",
+    "name": "playperf",
+    "score": 21,
+    "tolerance": 3,
+    "time_ms": 500,
+    "char_pool": [0, 1, 2, 3]
+  },
+  {
+    "when": "success",
+    "type": "fn",
+    "name": "playperf",
+    "score": {"from": "current_config", "delta": 3},
+    "tolerance": 3,
+    "time_ms": 500,
+    "char_pool": [0, 1, 2, 3]
+  },
+  {
+    "when": "fail",
+    "type": "fn",
+    "name": "playperf",
+    "score": {"from": "current_config", "delta": -3},
+    "tolerance": 3,
+    "time_ms": 500,
+    "char_pool": [0, 1, 2, 3]
+  }
+]

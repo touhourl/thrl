@@ -22,17 +22,17 @@ You must have a GPU. Supported GPU in this repo are [XPU](https://pytorch.org/ge
 
 Use `make switch` to switch GPU before running any command.
 
-GPU must have >=6 GB VRAM. Integrated (shared memory) can also work.
+GPU must have >=4 GB VRAM. Integrated (shared memory) can also work.
 
 One 2,048-step map rollout is about 1.62 GiB. But even though, system RAM can be very high due to processes, spawn and pytorch clones.
-It has about 22GB usage on an Intel XPU Shared Memory (default configuration). If time is not a issue, just use default config.
-I estimate that if we are using CUDA, the needed GPU VRAM will be about 3-6 GB and system memory will be about 12-15 GB.
+It has about 11GB usage on an Intel XPU Shared Memory (default configuration, 4 workers). If time is not a issue, just use default config.
+I estimate that if we are using CUDA, the needed GPU VRAM will be about 3-6 GB and system memory will be about 7-10 GB.
 
-The safest is one worker. It can even run on 4 (VRAM) + 8 (RAM) devices.
+The safest is one worker. It can even run on 4 (VRAM) + 4 (RAM) (or 8 RAM if XPU) devices.
+Note: the RAM noticed are all needed RAM, not actually system RAM. Suppose you just use tty1 mode.
+Then overhead of sys is around 1 GB? And then run it easily with 9 GB (tho there isn't one).
 
-Test how long the MOPPO update needs. You could add more workers if it is quick, so it can keep up more. else, reduce the amount of workers.
-
-Intel XPU has a bug: it rebuilds sycl every time if you don't cache. So, you can enable the things in main.py and let it cache.
+Test how long the MOPPO update needs. You could add more workers if it is quick, so it can keep up more. Else, reduce the amount of workers.
 
 ## Get started
 To get it running, you need a valid game copy of any games you want to run with.
@@ -56,9 +56,9 @@ For PC-98 era games:
     uv tool install maturin
     ```
 4. Patch your game executables. See repo th98patch. Place them at ./export/. 
-5. Use `make defconfig` to move core/defparam.py to core/param.py so you can run it.
-   Use `cp dosbox-x/test.conf export/default.conf` for testing, debugging, evulating and human mode.
-   Use `cp dosbox-x/headless.conf export/default.conf` for normal training.
+5. Configure runtime settings in `rrr.toml` and `curriculum.json. You may use default config via `make defconfig`.
+   Use `cp cfg/dosbox-x/test.conf export/default.conf` for testing, debugging, evulating and human mode.
+   Use `cp cfg/dosbox-x/headless.conf export/default.conf` for normal training.
 6.  ```shell
     maturin develop
     uv sync
@@ -70,6 +70,7 @@ Build documentation:
 ```shell
 make docs
 ```
+
 # Donating
 
 But if you really has money, donate to 0x0Ec67fa7d7Fbe849D481F32ee24CCecE901B3F55 at Ethereum with ETH/USDT/USDC or 
@@ -110,8 +111,6 @@ So you see why I am complaining it all the time.
 
 I will also develop it further, adding more games. 3 Games are already in planing and one of them has been written the draft. 
 TH04 is one of it and will be delivered as soon as I understood the TH04's CustomEntity. I love all musics in PC-98 era.
-But first, lemme take first a month break and recover from depressions and overloaded work,
-spending time with RL (real life).
 
 Original README:
 ---

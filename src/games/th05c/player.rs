@@ -30,10 +30,10 @@ pub fn player_position_resident_offset(
 ) -> Result<usize> {
     tracing::info!(
         "Finding player position via resident offset (0x{:X})...",
-        TH05Offsets::R2PLAYER
+        TH05COffsets::R2PLAYER
     );
 
-    let player_pos_addr = (resident_addr as isize + TH05Offsets::R2PLAYER) as usize;
+    let player_pos_addr = (resident_addr as isize + TH05COffsets::R2PLAYER) as usize;
 
     tracing::debug!(
         "Resident: 0x{:08X}, Calculated player_pos: 0x{:08X}",

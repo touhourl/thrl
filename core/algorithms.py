@@ -1,10 +1,8 @@
-"""
-Helpers used by the trainer.
-"""
+import importlib
+import json
 
 import numpy as np
-
-from .param import GAMMA, LAMBDA_GAE
+import rrr
 
 """
     Algorithm Helpers of thrl.
@@ -24,68 +22,28 @@ from .param import GAMMA, LAMBDA_GAE
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-
-def compute_gae(rewards, values, dones, last_value):
-    """
-    :param R
-    :param V
-    :param dones
-    :param V_{T}
-    :return: Tuple `(A_t^{GAE}, returns)`
-    """
-    # @misc{schulman2018highdimensionalcontinuouscontrolusing,
-    #     title={High-Dimensional Continuous Control Using Generalized Advantage Estimation},
-    #     author={John Schulman and Philipp Moritz and Sergey Levine and Michael Jordan and Pieter Abbeel},
-    #     year={2018},
-    #     eprint={1506.02438},
-    #     archivePrefix={arXiv},
-    #     primaryClass={cs.LG},
-    #     url={https://arxiv.org/abs/1506.02438},
-    # }
+def compute_gae(rewards, values, dones, last_value, gamma, lambda_gae):
+    rewards = np.asarray(rewards, dtype=np.float32)
+    values = np.asarray(values, dtype=np.float32)
+    dones = np.asarray(dones, dtype=np.float32)
     adv = np.zeros_like(rewards)
     gae = 0.0
     for t in reversed(range(len(rewards))):
-        # Notice here is important to use reversed thing of gae.
-        # \hata_t^{(1)} &\defeq  \dv_{t} \
-        # \hata_t^{(2)} &\defeq \dv_t + \gamma \dv_{t+1} \
-        # \hata_t^{(3)} &\defeq \dv_{t} + \gamma \dv_{t+1} + \gamma^2 \dv_{t+2} \
-        # Therefore, we can absolutely do:
-        # \hata_t^{(3)} &\defeq \dv_{t} + \gamma \hata_{t+1}^{(2)} \
-        # \hatalam_t
-        # &\defeq (1-\lambda)\lrparen*{ \hata_t^{(1)} + \lambda \hata_t^{(2)} + \lambda^2 \hata_t^{(3)} + \dots  }\nonumber \
-        # &= (1-\lambda)\lrparen*{ \dv_t + \lambda (\dv_t + \gamma \dv_{t+1}) + \lambda^2 (\dv_t + \gamma \dv_{t+1} + \gamma^2 \dv_{t+2}) + \dots }\nonumber \
-        # &= (1-\lambda)(
-        # \dv_t (1 + \lambda + \lambda^2 + \dots)
-        # +\gamma \dv_{t+1} (\lambda + \lambda^2 + \lambda^3 + \dots)\nonumber \
-        # &\ \ \ \ \  \ \ \ \ \ \ +\gamma^2 \dv_{t+2} (\lambda^2 + \lambda^3 + \lambda^4 + \dots)
-        # +\dots)
-        # \nonumber \
-        # So for dv_t, the coeff is \frac {1} {1-\lambda}. (Because of geometric series, while \lambda is < 1.).
-        # so they are all 1 * \lambda ^ k because multiplying the 1-\lambda.
-        # Then we separate the first term, factor out one \gamma\lambda, we get
-        # \hatalam_t =\delta_t +\gamma\lambda \hatalam_{t + 1}
-        # So to know the A_t, we need to know A_{t + 1} first
         nv = last_value if t == len(rewards) - 1 else values[t + 1]
         mask = 1.0 - dones[t]
-        delta = rewards[t] + GAMMA * nv * mask - values[t]
-        adv[t] = gae = delta + GAMMA * LAMBDA_GAE * mask * gae
+        delta = rewards[t] + gamma * nv * mask - values[t]
+        gae = delta + gamma * lambda_gae * mask * gae
+        adv[t] = gae
     return adv, adv + values
 
 
-def infer_observation_dims(sample_features, sample_maps, grid_h, grid_w):
-    """Calculate thr observation and check if valid.
-    :param sample_features
-    :param sample_maps
-    :param grid_h
-    :param grid_w
-    :return: Tuple `(feature_dim, map_channels)`.
-    :raises ValueError: If the map length is incompatible with the grid.
-    """
-    feature_dim = len(sample_features)
-    cell_count = grid_h * grid_w
-    if cell_count == 0 or len(sample_maps) % cell_count != 0:  # reject some invalid maps.
-        raise ValueError(
-            f"Map size {len(sample_maps)} not divisible by grid {grid_h}x{grid_w}"
-        )
-    map_channels = len(sample_maps) // cell_count  # this is not a comment in py.
-    return feature_dim, map_channels
+def entropy_coeff(update_step, start, end, anneal_updates):
+    if anneal_updates == 0:
+        return end
+    t = min(update_step / anneal_updates, 1.0)
+    return start + t * (end - start)
+
+
+def train():
+    name = json.loads(rrr.runtime_config_json())["runtime"]["algorithm"]
+    importlib.import_module(f".{name}", __package__).train()

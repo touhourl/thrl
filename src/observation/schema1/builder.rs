@@ -18,7 +18,7 @@ use super::{
     // CustomEntityMap
     extract_projectile_entities,
 };
-use crate::games::th05_c::types::GameState;
+use crate::observation::frame::Frame;
 use crate::param::ObservationConfig;
 use serde::{Deserialize, Serialize};
 
@@ -75,7 +75,7 @@ impl ObservationBuilder {
         self
     }
 
-    pub fn build_observation(&self, state: &GameState) -> Observation {
+    pub fn build_observation(&self, state: &Frame) -> Observation {
         let player = PlayerFeatures::from_game_state(state);
         let boss = BossFeatures::from_game_state(state);
         let game_state = StateFeatures::from_game_state(state);
@@ -151,12 +151,12 @@ impl ObservationBuilder {
         }
     }
 
-    pub fn build_flattened(&self, state: &GameState) -> Vec<f32> {
+    pub fn build_flattened(&self, state: &Frame) -> Vec<f32> {
         let obs = self.build_observation(state);
         obs.to_flattened()
     }
 
-    pub fn build_components(&self, state: &GameState) -> (Vec<f32>, Vec<f32>) {
+    pub fn build_components(&self, state: &Frame) -> (Vec<f32>, Vec<f32>) {
         let obs = self.build_observation(state);
         (obs.to_feature_vec(), obs.to_map_tensor())
     }

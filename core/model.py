@@ -14,6 +14,7 @@ Anyway, welcome to see my paper. I did not mention because in the future I can m
 If I forgot to do so, pr or issue it.
 """
 
+
 import torch
 import torch.nn as nn
 
@@ -35,23 +36,9 @@ import torch.nn as nn
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from .param import (
-    FEATURE_PROJECT_DIM,
-    CNN_EMBED_DIM,
-    CNN_POOL_OUT,
-    CNN_HIDDEN_CHANNELS,
-    HIDDEN_DIM,
-    GRU_HIDDEN_SIZE,
-    NUM_OBJECTIVES
-)
-
-
 class MapEncoder(nn.Module):
-    def __init__(self, in_channels=24, hidden_channels=None, embed_dim=CNN_EMBED_DIM,
-                 pool_out=CNN_POOL_OUT):
+    def __init__(self, in_channels, hidden_channels, embed_dim, pool_out):
         super().__init__()
-        if hidden_channels is None:
-            hidden_channels = CNN_HIDDEN_CHANNELS
         self.conv1 = nn.Conv2d(in_channels, hidden_channels[0], kernel_size=3, stride=2, padding=1)
         self.conv2 = nn.Conv2d(hidden_channels[0], hidden_channels[1], kernel_size=3, stride=2, padding=1)
         self.conv3 = nn.Conv2d(hidden_channels[1], hidden_channels[2], kernel_size=3, stride=2, padding=1)
@@ -78,16 +65,17 @@ class MapEncoder(nn.Module):
 
 
 class MOActorCritic(nn.Module):
-    def __init__(self, feature_dim=273, map_channels=24, embed_dim=CNN_EMBED_DIM,
-                 hidden_dim=HIDDEN_DIM, action_dim=19, feature_proj_dim=FEATURE_PROJECT_DIM,
-                 gru_hidden_size=GRU_HIDDEN_SIZE, num_objectives=NUM_OBJECTIVES):
+    def __init__(self, feature_dim, map_channels, cnn_embed_dim, hidden_dim, action_dim,
+                 feature_proj_dim, gru_hidden_size, num_objectives, cnn_hidden_channels,
+                 cnn_pool_out):
         super().__init__()
         self.gru_hidden_size = gru_hidden_size
         self.num_objectives = num_objectives
-        self.map_encoder = MapEncoder(in_channels=map_channels, embed_dim=embed_dim)
+        self.map_encoder = MapEncoder(in_channels=map_channels, hidden_channels=cnn_hidden_channels,
+                                      embed_dim=cnn_embed_dim, pool_out=cnn_pool_out)
         self.feature_proj = nn.Linear(feature_dim, feature_proj_dim)
 
-        combined_dim = feature_proj_dim + embed_dim  # 128 + 128 = 256
+        combined_dim = feature_proj_dim + cnn_embed_dim  # 128 + 128 = 256
 
         # GRU for temporal memory. Even with one frame it can see if bullet is near or far.
         self.gru = nn.GRU(input_size=combined_dim, hidden_size=gru_hidden_size,

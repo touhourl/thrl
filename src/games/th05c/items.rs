@@ -28,19 +28,19 @@ use crate::memory::ProcessMemory;
 pub fn item_array(mem: &mut ProcessMemory, player_pos: usize) -> Result<usize> {
     tracing::info!("Searching for item array via offset...");
 
-    let candidate = (player_pos as isize + TH05Offsets::P2ITEMS) as usize;
+    let candidate = (player_pos as isize + TH05COffsets::P2ITEMS) as usize;
     let data = mem.read(
         candidate,
-        TH05ArrayLength::ITEM_COUNT * TH05Stride::ITEM_STRIDE,
+        TH05ArrayLength::ITEM_COUNT * TH05CStride::ITEM_STRIDE,
     )?;
 
     let valid_item_types: [u8; 8] = [0, 1, 2, 3, 4, 5, 6, 0xFF];
-    let checked = TH05ArrayLength::ITEM_COUNT.min(data.len() / TH05Stride::ITEM_STRIDE);
+    let checked = TH05ArrayLength::ITEM_COUNT.min(data.len() / TH05CStride::ITEM_STRIDE);
     let mut valid_count = 0usize;
     let mut active_count = 0usize;
 
     for i in 0..checked {
-        let b = i * TH05Stride::ITEM_STRIDE;
+        let b = i * TH05CStride::ITEM_STRIDE;
         let flag = data[b];
 
         // Flag must be valid, no other flags are valid.

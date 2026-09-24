@@ -29,14 +29,14 @@ use crate::memory::ProcessMemory;
 pub fn laser_array(mem: &mut ProcessMemory, player_pos: usize) -> Result<usize> {
     tracing::info!("Searching for laser array via offset...");
 
-    let candidate = (player_pos as isize + TH05Offsets::P2LASERS) as usize;
-    let sample = mem.read(candidate, TH05Stride::LASER_STRIDE * 8)?;
+    let candidate = (player_pos as isize + TH05COffsets::P2LASERS) as usize;
+    let sample = mem.read(candidate, TH05CStride::LASER_STRIDE * 8)?;
 
     let mut valid = 0usize;
-    let checked = 8.min(sample.len() / TH05Stride::LASER_STRIDE);
+    let checked = 8.min(sample.len() / TH05CStride::LASER_STRIDE);
 
     for i in 0..checked {
-        let base = i * TH05Stride::LASER_STRIDE;
+        let base = i * TH05CStride::LASER_STRIDE;
         let flag = sample[base];
 
         if flag <= 7 {
@@ -66,10 +66,10 @@ pub fn laser_array(mem: &mut ProcessMemory, player_pos: usize) -> Result<usize> 
 pub fn cheeto_trail_array(mem: &mut ProcessMemory, player_pos: usize) -> Result<usize> {
     tracing::info!("Searching for cheeto trail array via offset...");
 
-    let candidate = (player_pos as isize + TH05Offsets::P2CHEETO) as usize;
+    let candidate = (player_pos as isize + TH05COffsets::P2CHEETO) as usize;
     let _sample = mem.read(
         candidate,
-        TH05Stride::CHEETO_STRIDE * TH05ArrayLength::CHEETO_TRAIL_COUNT,
+        TH05CStride::CHEETO_STRIDE * TH05ArrayLength::CHEETO_TRAIL_COUNT,
     )?;
 
     tracing::info!("Found cheeto trail array at 0x{:08X}", candidate);
@@ -80,8 +80,8 @@ pub fn cheeto_trail_array(mem: &mut ProcessMemory, player_pos: usize) -> Result<
 pub fn custom_entity_array(mem: &mut ProcessMemory, player_pos: usize) -> Result<usize> {
     tracing::info!("Searching for custom entity array via offset...");
 
-    let candidate = (player_pos as isize + TH05Offsets::P2CE) as usize;
-    let _sample = mem.read(candidate, TH05Stride::CE_STRIDE * 8)?;
+    let candidate = (player_pos as isize + TH05COffsets::P2CE) as usize;
+    let _sample = mem.read(candidate, TH05CStride::CE_STRIDE * 8)?;
 
     tracing::info!("Found custom entity array at 0x{:08X}", candidate);
 
@@ -91,10 +91,10 @@ pub fn custom_entity_array(mem: &mut ProcessMemory, player_pos: usize) -> Result
 pub fn firewave_array(mem: &mut ProcessMemory, player_pos: usize) -> Result<usize> {
     tracing::info!("Searching for firewave array via offset...");
 
-    let candidate = (player_pos as isize + TH05Offsets::P2FIREWAVES) as usize;
+    let candidate = (player_pos as isize + TH05COffsets::P2FIREWAVES) as usize;
     let _sample = mem.read(
         candidate,
-        TH05Stride::FIREWAVE_STRIDE * TH05ArrayLength::FIREWAVE_COUNT,
+        TH05CStride::FIREWAVE_STRIDE * TH05ArrayLength::FIREWAVE_COUNT,
     )?;
 
     tracing::info!("Found firewave array at 0x{:08X}", candidate);

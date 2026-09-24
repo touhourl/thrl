@@ -1,4 +1,4 @@
-use crate::games::th05_c::types::GameState;
+use crate::observation::frame::Frame;
 use serde::{Deserialize, Serialize};
 
 /*
@@ -29,7 +29,7 @@ pub struct StateFeatures {
 }
 
 impl StateFeatures {
-    pub fn from_game_state(state: &GameState) -> Self {
+    pub fn from_game_state(state: &Frame) -> Self {
         Self {
             // 7 stages (6 in resident)
             stage_norm: (state.resident.stage as f32 / 6.0).clamp(0.0, 1.0),
