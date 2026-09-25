@@ -18,7 +18,7 @@ use tokio::sync::{oneshot, watch};
 /*
     Main Entry Point of RL-rs.
     Training Workers of thrl.
-    Copyright (C) 2026  T. Liu and contributors
+    Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -232,12 +232,9 @@ impl Collector {
         let curriculum_state_path = Path::new(&cfg.paths.curriculum_state_file);
         let current_cfg = match cfg_json {
             Some(json) => json.to_string(),
-            None => crate::cfg::execute_cc_json(
-                &cfg.runtime.game,
-                &curriculum_program,
-                "start",
-                None,
-            ),
+            None => {
+                crate::cfg::execute_cc_json(&cfg.runtime.game, &curriculum_program, "start", None)
+            }
         };
         crate::cfg::write_cfg_json(&cfg, &current_cfg);
         let logger = TrainingLogger::new(&cfg.paths.log_dir)
