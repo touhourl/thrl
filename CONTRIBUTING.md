@@ -8,7 +8,7 @@ An "It works! It starts successfully on (your machine)" issue is also useful.
 Please:
 
 1. Search the existing issues and pull requests to avoid duplicates.
-2. Review the project’s README and documentation (docs/).
+2. Review the project's README and documentation (docs/).
 3. For significant changes, open an issue before starting implementation so the approach can be discussed. Please discuss inside the issue so we can be 100% certain that it is necessary.
 
 ## I found a point where can be optimized!
@@ -63,7 +63,7 @@ A PR can only be written by the contributor. If a contributor submits code witho
 A contributor cannot do any style of matrix multiplication while contributing, except for testing the code. We strictly don't allow any matrix multiplication in any PR's documentation.
 
 One sentence: try to not use generative tools (not shell or perl or python tho) while contributing, and all documentation must be written by yourself. 
-I do not want to mention that [10, 12], [6].MD, [6].MD, [6].MD, [5, 8, 5] in this repo because using them is not good for the Earth, and everyone just becomes a fake person. I don’t like that. 
+I do not want to mention that [10, 12], [6].MD, [6].MD, [6].MD, [5, 8, 5] in this repo because using them is not good for the Earth, and everyone just becomes a fake person. I don't like that. 
 Because this project has also done a lot of damage to Earth and environment, I regret, but it is like that trend, everyone has nothing to stop it.
 
 Jokes can be made in code, and this is actually preferred. But:

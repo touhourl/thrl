@@ -56,7 +56,8 @@ For PC-98 era games:
     uv tool install maturin
     ```
 4. Patch your game executables. See repo th98patch. Place them at ./export/. 
-5. Configure runtime settings in `rrr.toml` and `curriculum.json. You may use default config via `make defconfig`.
+5. Use `make defconfig` to generate default configurations.
+   Configure runtime settings in `rrr.toml` and `curriculum.json`. You may use default config via `make defconfig`.
    Use `cp cfg/dosbox-x/test.conf export/default.conf` for testing, debugging, evulating and human mode.
    Use `cp cfg/dosbox-x/headless.conf export/default.conf` for normal training.
 6.  ```shell

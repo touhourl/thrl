@@ -20,8 +20,6 @@ CSS_OUTPUT    := $(HTML_DIR)/site.css
 define XPU_BLOCK
 [tool.uv.sources]
 torch = { index = "pytorch-xpu" }
-torchvision = { index = "pytorch-xpu" }
-torchaudio = { index = "pytorch-xpu" }
 
 [[tool.uv.index]]
 name = "pytorch-xpu"
@@ -63,4 +61,9 @@ switch:
 		-e '  print STDOUT "XPU enabled\n";' \
 		-e '}' pyproject.toml
 defconfig:
-	@cp core/defparam.py core/param.py
+	@cp cfg/rrr/def.toml rrr.toml
+	@cp cfg/cc/curriculum_det.json curriculum.json
+tarcode:
+	@git ls-files -z -c -o --exclude-standard | tar --null -T - -czf ../code.tar.gz
+tarmodel:
+	tar -czf ../models.tar.gz rrr.toml models/ curriculum.json logs/

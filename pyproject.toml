@@ -6,17 +6,12 @@ build-backend = "maturin"
 profile = "release"
 [project]
 name = "rrr"
-version = "0.1.12"
+version = "0.2.0"
 description = "Touhou Reinforcement Learning Framework"
 requires-python = ">=3.14"
 dependencies = [
-  "matplotlib>=3.11.1",
-  "numpy>=2.5.1",
-  "packaging>=26.2",
-  "pandas>=3.0.5",
-  "safetensors>=0.7.0",
-  "torch==2.13.0+xpu",
-  "tqdm>=4.70.0",
+  "numpy>=2.5.3",
+  "torch==2.14.0+xpu",
 ]
 
 [tool.uv]
@@ -25,8 +20,6 @@ index-strategy = "unsafe-best-match"
 
 [tool.uv.sources]
 torch = { index = "pytorch-xpu" }
-torchvision = { index = "pytorch-xpu" }
-torchaudio = { index = "pytorch-xpu" }
 
 [[tool.uv.index]]
 name = "pytorch-xpu"

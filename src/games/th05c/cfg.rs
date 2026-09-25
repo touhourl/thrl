@@ -592,7 +592,7 @@ fn max_phase(stage: u8) -> u8 {
 ///          Just take it as 3 Phases
 /// Stage 5: 9 Phases
 /// Stage 6: 6 Phases because ZUN change the background when > 7 or 8 I forgot.
-/// Extra Stage: 12 Phases. Last 2 are unselectable we don't know why.
+/// Extra Stage: 12 Phases.
 fn selectable_phase(stage: u8) -> u8 {
     assert!((stage as usize) < 7, "Invalid stage: {}", stage); // ex
     match stage {

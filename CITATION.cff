@@ -10,12 +10,12 @@ authors:
 abstract: >
   A High-Fidelity Reinforcement Learning Environment and Baseline for Multi-Objective Bullet Hell Games
 
-repository-code: "https://github.com/touhourl/thrl"
-url: "https://github.com/touhourl/thrl"
+repository-code: "https://codeberg.org/thrl/thrl"
+url: "https://codeberg.org/thrl/thrl"
 
 license: "GPL-v3-or-later"
-version: "0.1.12"
-date-released: "2026-08-04"
+version: "0.2.0"
+date-released: "2026-09-25"
 
 keywords:
   - reinforcement learning
