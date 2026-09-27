@@ -45,7 +45,10 @@ For PC-98 era games:
     cd dosbox-x
     ./build
     sudo make install
+    sudo setcap -r "$(type -P dosbox-x)" # This doesn't affect game only network
     ```
+    Note: Every time you do `git pull && ./build && sudo make install`, you need to do
+    `sudo setcap -r "$(type -P dosbox-x)"` also, so running it does not require root, except HM mode.
 2. Install rust toolchains:
     ```shell
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
@@ -63,7 +66,6 @@ For PC-98 era games:
 6.  ```shell
     maturin develop
     uv sync
-    sudo setcap -r "$(type -P dosbox-x)" # This doesn't affect game only network
     uv run main.py
     ```
 
@@ -87,8 +89,9 @@ in reinforcement learning and scientific researches, and I believe you can do be
 
 I will put it temporary in readme. During my first experiment, a TH04 experiment (source code is already deleted) which I used only
 Top-K things and standard PPO approach, had a good result. The agent went further to stage 2 (idx 1) and fought with boss. 
-The training lasted about 20 days and had to stop because of emergency shutdown. It went really slow (~ 3 min per episode 
-because of original executable, entirely CPU, and /dev/input instead of memory writes), so it was not efficient.
+The training lasted about 3 days (total time of computing, and splitted to 20 days) and had to stop 
+because of emergency shutdown. It went really slow (~ 3 min per episode  because of original executable, 
+entirely CPU, and /dev/input instead of memory writes), so it was not efficient.
 With the current implementation status, I bet someone with a good hardware can run it. 
 
 Entropy goes down, but it cannot fully beat stage 3 (idx 2) in game with 3 lives and 3 bombs. But in my opinion, it is only a time issue.

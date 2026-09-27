@@ -17,7 +17,8 @@
 //! [paper]
 
 /*
-    Map layout of rrr, RL-rs
+    Map layout of rrr.
+    Egocentric Map of RL-rs.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify
@@ -34,6 +35,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 use crate::observation::frame::*;
+use crate::param::RuntimeConfig;
 use serde::{Deserialize, Serialize};
 
 const BULLETMAP_EDGE_SOFTNESS: f32 = 0.2;
@@ -42,6 +44,16 @@ const BULLETMAP_EDGE_MIN_WEIGHT: f32 = 0.02;
 #[inline]
 fn clamp(value: f32, lo: f32, hi: f32) -> f32 {
     value.max(lo).min(hi)
+}
+
+fn egocentric_map_config() -> Option<(f32, f32)> {
+    let observation = &RuntimeConfig::global().raw["observation"];
+    observation["egocentric_map"].as_bool().unwrap().then(|| {
+        (
+            observation["egocentric_map_span_x_px"].as_float().unwrap() as f32,
+            observation["egocentric_map_span_y_px"].as_float().unwrap() as f32,
+        )
+    })
 }
 
 pub trait GridEntity {
@@ -85,6 +97,21 @@ impl SpatialMap {
         span_x_px: f32,
         span_y_px: f32,
     ) -> Self {
+        Self::from_entities_with_mode(
+            entities, player_x, player_y, grid_w, grid_h, span_x_px, span_y_px, None,
+        )
+    }
+
+    fn from_entities_with_mode<T: GridEntity>(
+        entities: impl IntoIterator<Item = T>,
+        player_x: f32,
+        player_y: f32,
+        grid_w: usize,
+        grid_h: usize,
+        span_x_px: f32,
+        span_y_px: f32,
+        egocentric_map: Option<(f32, f32)>,
+    ) -> Self {
         let size = grid_w * grid_h;
         let mut count = vec![0.0f32; size];
         let mut vx_acc = vec![0.0f32; size];
@@ -92,23 +119,41 @@ impl SpatialMap {
         let mut type_acc = vec![0.0f32; size];
         let mut closest = vec![1.0f32; size];
 
-        let max_dist = (span_x_px.powi(2) + span_y_px.powi(2)).sqrt();
+        let (projection_span_x_px, projection_span_y_px) =
+            egocentric_map.unwrap_or((span_x_px, span_y_px));
+        let max_dist = (projection_span_x_px.powi(2) + projection_span_y_px.powi(2)).sqrt();
         let mut active_in_span = 0usize;
 
         // Note: we can't get player position here anymore.
         // You'll need to compute (dx, dy) before calling this or pass player pos in.
         // For now, this is a "centered at origin" map.
+
+        // side note; the egocentric idea and code is 7 months old!
         for entity in entities {
             let (ex, ey) = entity.get_pixel_pos();
-            let (gx, gy, edge_weight, inside) = Self::soft_project_to_grid(
-                ex,
-                ey,
-                grid_w,
-                grid_h,
-                span_x_px,
-                span_y_px,
-                BULLETMAP_EDGE_SOFTNESS,
-            );
+            let dx = ex - player_x;
+            let dy = ey - player_y;
+            let (gx, gy, edge_weight, inside) = if egocentric_map.is_some() {
+                Self::soft_project_to_grid_egocentric(
+                    dx,
+                    dy,
+                    grid_w,
+                    grid_h,
+                    projection_span_x_px,
+                    projection_span_y_px,
+                    BULLETMAP_EDGE_SOFTNESS,
+                )
+            } else {
+                Self::soft_project_to_grid(
+                    ex,
+                    ey,
+                    grid_w,
+                    grid_h,
+                    span_x_px,
+                    span_y_px,
+                    BULLETMAP_EDGE_SOFTNESS,
+                )
+            };
             let gx = gx.min(grid_w - 1);
             let gy = gy.min(grid_h - 1);
             let i = gy * grid_w + gx;
@@ -119,8 +164,6 @@ impl SpatialMap {
             vy_acc[i] += vy * edge_weight;
             type_acc[i] += entity.get_type_id() * edge_weight;
 
-            let dx = ex - player_x;
-            let dy = ey - player_y;
             let dist = (dx * dx + dy * dy).sqrt();
             closest[i] = closest[i].min((dist / max_dist).min(1.0));
 
@@ -138,8 +181,16 @@ impl SpatialMap {
         let mut player_dist = vec![0.0f32; size];
 
         // Calculate player distance for each cell
-        let cell_w = span_x_px / grid_w as f32;
-        let cell_h = span_y_px / grid_h as f32;
+        let cell_w = if egocentric_map.is_some() {
+            projection_span_x_px * 2.0 / grid_w as f32
+        } else {
+            span_x_px / grid_w as f32
+        };
+        let cell_h = if egocentric_map.is_some() {
+            projection_span_y_px * 2.0 / grid_h as f32
+        } else {
+            span_y_px / grid_h as f32
+        };
 
         for gy in 0..grid_h {
             for gx in 0..grid_w {
@@ -150,8 +201,11 @@ impl SpatialMap {
                 let cell_y = (gy as f32 + 0.5) * cell_h;
 
                 // Distance from cell center to player
-                let dx = cell_x - player_x;
-                let dy = cell_y - player_y;
+                let (dx, dy) = if egocentric_map.is_some() {
+                    (cell_x - projection_span_x_px, cell_y - projection_span_y_px)
+                } else {
+                    (cell_x - player_x, cell_y - player_y)
+                };
                 let dist = (dx * dx + dy * dy).sqrt();
                 player_dist[i] = (dist / max_dist).clamp(0.0, 1.0);
 
@@ -232,6 +286,39 @@ impl SpatialMap {
         let gy = gy.min(grid_h - 1);
         (gx, gy, weight, inside)
     }
+    /// This is not experimental feature. It should work.
+    /// (this is might not a feature at all)
+    #[inline]
+    fn soft_project_to_grid_egocentric(
+        dx: f32,
+        dy: f32,
+        grid_w: usize,
+        grid_h: usize,
+        span_x_px: f32,
+        span_y_px: f32,
+        edge_softness: f32,
+    ) -> (usize, usize, f32, bool) {
+        let nx = dx / span_x_px;
+        let ny = dy / span_y_px;
+
+        let inside = nx.abs() <= 1.0 && ny.abs() <= 1.0;
+        let max_abs = nx.abs().max(ny.abs());
+        let weight = if max_abs <= 1.0 {
+            1.0
+        } else {
+            let excess = max_abs - 1.0;
+            let falloff = 1.0 / (1.0 + (excess / edge_softness.max(1e-6)));
+            falloff.max(BULLETMAP_EDGE_MIN_WEIGHT)
+        };
+
+        let clamped_x = clamp(nx, -1.0, 1.0);
+        let clamped_y = clamp(ny, -1.0, 1.0);
+        let gx = (((clamped_x + 1.0) * 0.5) * grid_w as f32) as usize;
+        let gy = (((clamped_y + 1.0) * 0.5) * grid_h as f32) as usize;
+        let gx = gx.min(grid_w - 1);
+        let gy = gy.min(grid_h - 1);
+        (gx, gy, weight, inside)
+    }
 
     /// Flatten all channels into one vector for neural net input.
     pub fn to_flattened(&self) -> Vec<f32> {
@@ -271,7 +358,16 @@ impl BulletMap {
                 type_id,
             }
         });
-        Self::from_entities(bullets, px, py, grid_w, grid_h, span_x_px, span_y_px)
+        Self::from_entities_with_mode(
+            bullets,
+            px,
+            py,
+            grid_w,
+            grid_h,
+            span_x_px,
+            span_y_px,
+            egocentric_map_config(),
+        )
     }
 }
 
@@ -387,7 +483,16 @@ impl BossMap {
             });
         }
 
-        Self::from_entities(bosses, px, py, grid_w, grid_h, span_x_px, span_y_px)
+        Self::from_entities_with_mode(
+            bosses,
+            px,
+            py,
+            grid_w,
+            grid_h,
+            span_x_px,
+            span_y_px,
+            egocentric_map_config(),
+        )
     }
 }
 pub type EnemyMap = SpatialMap;
@@ -412,7 +517,16 @@ impl EnemyMap {
                 type_id,
             }
         });
-        Self::from_entities(enemies, px, py, grid_w, grid_h, span_x_px, span_y_px)
+        Self::from_entities_with_mode(
+            enemies,
+            px,
+            py,
+            grid_w,
+            grid_h,
+            span_x_px,
+            span_y_px,
+            egocentric_map_config(),
+        )
     }
 }
 
@@ -1006,7 +1120,7 @@ impl ProjectileMap {
             });
         }
 
-        Self::from_entities(
+        Self::from_entities_with_mode(
             all_entities,
             player_x,
             player_y,
@@ -1014,6 +1128,7 @@ impl ProjectileMap {
             grid_h,
             span_x_px,
             span_y_px,
+            egocentric_map_config(),
         )
     }
 }
