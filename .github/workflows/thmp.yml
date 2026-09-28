@@ -1,0 +1,40 @@
+name: Build thmp
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repositery
+        uses: actions/checkout@v7
+
+      - name: Install rust
+        shell: bash
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal --default-toolchain stable
+
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+          source "$HOME/.cargo/env"
+          rustc --version
+          cargo --version
+
+      - name: Build
+        run: cargo build -p thmp --release
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: thmp
+          path: target/release/thmp\

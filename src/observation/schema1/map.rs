@@ -7,8 +7,7 @@
 //!
 //! IMPORTANT: Make sure your entity types impl GridEntity correctly
 //! the whole grid depends on getting consistent position and velocity data.
-//! Some of them are old and not used anymore, I don't wanna see code got deleted so
-//! kept for historical reasons.
+//! Some of them are old and not used anymore so I delete them.
 //!
 //! TODO: Remove unused maps after release to github and contributors of thrl project starting to appear
 //! See CONTRIBUTING.md:{Writing code}
@@ -47,13 +46,7 @@ fn clamp(value: f32, lo: f32, hi: f32) -> f32 {
 }
 
 fn egocentric_map_config() -> Option<(f32, f32)> {
-    let observation = &RuntimeConfig::global().raw["observation"];
-    observation["egocentric_map"].as_bool().unwrap().then(|| {
-        (
-            observation["egocentric_map_span_x_px"].as_float().unwrap() as f32,
-            observation["egocentric_map_span_y_px"].as_float().unwrap() as f32,
-        )
-    })
+    RuntimeConfig::global().observation.egocentric_map_span()
 }
 
 pub trait GridEntity {
@@ -495,6 +488,7 @@ impl BossMap {
         )
     }
 }
+
 pub type EnemyMap = SpatialMap;
 
 impl EnemyMap {
@@ -529,7 +523,7 @@ impl EnemyMap {
         )
     }
 }
-
+/*
 pub type DropMap = SpatialMap;
 
 impl DropMap {
@@ -555,7 +549,7 @@ impl DropMap {
         Self::from_entities(drops, px, py, grid_w, grid_h, span_x_px, span_y_px)
     }
 }
-
+*/
 #[derive(Clone)]
 struct AbsoluteEntity {
     x: f32,
@@ -576,92 +570,6 @@ impl GridEntity for AbsoluteEntity {
 
     fn get_type_id(&self) -> f32 {
         self.type_id
-    }
-}
-
-/// Laser map
-pub type LaserMap = SpatialMap;
-
-impl LaserMap {
-    /// Create a laser map by sampling points along each laser beam.
-    ///
-    /// Laser Rendering (laser_rh.cpp: laser_render_ray)
-    ///
-    /// Lasers are rendered as 4-sided trapezoid with width perpendicular to the beam:
-    ///
-    ///
-    /// Calculate perpendicular offset for laser width first:
-    ///
-    /// Then, calculate 4 corner points of the laser beam;
-    ///
-    /// Last, clip polygon to screen and render.
-    /// grc_clip_polygon_n(&clipped, 8, &corners, 4);
-    /// grcg_polygon_cx(&clipped, point_count);
-    ///
-    ///
-    /// Hit detection samples 12*12 boxes every 16 pixels along the centerline.
-    ///
-    /// Type ID: `flag / 7` (laser types 1-7: shootout, fixed_wait, fixed_grow, fixed_active,
-    /// fixed_shrink, fixed_shrink_and_wait, shootout_decay)
-    ///
-    /// TODO: New type for rendered laser and actually hitbox lasers.
-    pub fn from_lasers(
-        lasers: &[crate::observation::frame::Laser],
-        player_x: f32,
-        player_y: f32,
-        grid_w: usize,
-        grid_h: usize,
-        span_x_px: f32,
-        span_y_px: f32,
-    ) -> Self {
-        let mut sampled_points = Vec::new();
-
-        for laser in lasers {
-            let origin_x = laser.origin_x as f32 / 16.0;
-            let origin_y = laser.origin_y as f32 / 16.0;
-
-            // Convert angle (0-255) to radians
-            let angle_rad = (laser.angle as f32 / 256.0) * 2.0 * std::f32::consts::PI;
-            let cos_a = angle_rad.cos();
-            let sin_a = angle_rad.sin();
-
-            // Sample points along the laser beam centerline
-            let start_dist = laser.starts_at_distance as f32 / 16.0;
-            let end_dist = laser.ends_at_distance as f32 / 16.0;
-            let beam_length = (end_dist - start_dist).abs();
-
-            // Sample every 16 pixels along the beam
-            let num_samples = (beam_length / 16.0).ceil() as i32 + 1;
-            for i in 0..num_samples {
-                let t = if num_samples > 1 {
-                    i as f32 / (num_samples - 1) as f32
-                } else {
-                    0.5
-                };
-                let dist = start_dist + t * (end_dist - start_dist);
-
-                let x = origin_x + cos_a * dist;
-                let y = origin_y + sin_a * dist;
-
-                sampled_points.push(AbsoluteEntity {
-                    x,
-                    y,
-                    vx: 0.0, // Lasers don't move (they grow/shrink but don't translate)
-                    vy: 0.0,
-                    type_id: laser.flag as f32 / 7.0, // LF_SHOOTOUT=1 to LF_SHOOTOUT_DECAY=7
-                });
-            }
-        }
-
-        Self::from_entities(
-            sampled_points,
-            player_x,
-            player_y,
-            grid_w,
-            grid_h,
-            span_x_px,
-            span_y_px,
-        )
     }
 }
 
@@ -688,153 +596,36 @@ fn sample_firewave(firewave: &Firewave, span_x_px: f32, span_y_px: f32) -> Vec<(
             let x_offset = amp * angle_rad.sin();
 
             let x = if is_right {
-                384.0 - x_offset
+                span_x_px - x_offset
             } else {
                 x_offset + 16.0
             };
 
             if x >= 0.0 && x <= span_x_px {
-                points.push((x, y, is_right));
+                if is_right {
+                    // this will be the right side
+                    let start_x = x.ceil() as i32;
+                    let end_x = span_x_px.floor() as i32;
+
+                    for fill_x in start_x..=end_x {
+                        points.push((fill_x as f32, y, is_right));
+                    }
+                } else {
+                    // This goes to the left
+                    let start_x = 16;
+                    let end_x = x.floor() as i32;
+
+                    for fill_x in start_x..=end_x {
+                        points.push((fill_x as f32, y, is_right));
+                    }
+                }
             }
         }
-
-        y -= 16.0;
-        angle += 8.0;
+        y -= 1.0;
+        angle += 0.5;
     }
 
     points
-}
-
-/// Firewave map, ExAlice Phase 2 (you see) or 4 (code).
-pub type FirewaveMap = SpatialMap;
-
-impl FirewaveMap {
-    /// Create a firewave map by sampling points along the sine wave.
-    /// TODO: fill? Or don't fill?
-    pub fn from_firewaves(
-        firewaves: &[crate::observation::frame::Firewave],
-        player_x: f32,
-        player_y: f32,
-        grid_w: usize,
-        grid_h: usize,
-        span_x_px: f32,
-        span_y_px: f32,
-    ) -> Self {
-        let mut sampled_points = Vec::new();
-
-        for firewave in firewaves {
-            for (x, y, is_right) in sample_firewave(firewave, span_x_px, span_y_px) {
-                sampled_points.push(AbsoluteEntity {
-                    x,
-                    y,
-                    vx: 0.0,
-                    vy: 0.0,
-                    type_id: if is_right { 1.0 } else { 0.0 },
-                });
-            }
-        }
-
-        Self::from_entities(
-            sampled_points,
-            player_x,
-            player_y,
-            grid_w,
-            grid_h,
-            span_x_px,
-            span_y_px,
-        )
-    }
-}
-
-/// Cheeto trail map
-pub type CheetoMap = SpatialMap;
-
-impl CheetoMap {
-    /// Create a cheeto trail map by sampling trail nodes.
-    ///
-    /// From cheeto_u.cpp, cheetos_render.asm
-    ///
-    /// Cheeto bullets leave a trail of 16 nodes behind them:
-    /// ```cpp
-    /// ```
-    ///
-    /// cheetos_render.asm
-    /// ```asm
-    /// ```
-    ///
-    /// So it only have 16 nodes and only the idx mod 2 = 1 are rendered.
-    /// From like 15, 13, ... 1 (1 is the head, or we can say, 0)
-    /// flags: CF_DECELERATE (1) = slowing down, CF_SPEEDUP (2) = speeding up
-    pub fn from_cheeto_trails(
-        trails: &[crate::observation::frame::CheetoTrail],
-        player_x: f32,
-        player_y: f32,
-        grid_w: usize,
-        grid_h: usize,
-        span_x_px: f32,
-        span_y_px: f32,
-    ) -> Self {
-        let mut sampled_points = Vec::new();
-
-        for trail in trails {
-            // Nodes: See function doc
-            for node_i in (1..16).step_by(2).rev() {
-                let x = trail.node_pos[node_i].x as f32 / 16.0;
-                let y = trail.node_pos[node_i].y as f32 / 16.0;
-
-                sampled_points.push(AbsoluteEntity {
-                    x,
-                    y,
-                    vx: 0.0,
-                    vy: 0.0,
-                    type_id: trail.flag as f32 / 2.0,
-                });
-            }
-        }
-
-        Self::from_entities(
-            sampled_points,
-            player_x,
-            player_y,
-            grid_w,
-            grid_h,
-            span_x_px,
-            span_y_px,
-        )
-    }
-}
-
-/// Custom entity map. I only see 05 use it.
-pub type CustomEntityMap = SpatialMap;
-
-impl CustomEntityMap {
-    /// Create a custom entity map from custom entities.
-    pub fn from_custom_entities(
-        entities: &[crate::observation::frame::CustomEntity],
-        player_x: f32,
-        player_y: f32,
-        grid_w: usize,
-        grid_h: usize,
-        span_x_px: f32,
-        span_y_px: f32,
-    ) -> Self {
-        let mapped = entities.iter().map(|entity| {
-            let (x, y) = entity.pos.to_pixels();
-            let (vx, vy) = entity.pos.velocity_pixels();
-            // Normalize sprite ID to 0-1 range (sprite + 128 to handle negative values, / 255)
-            let type_id = ((entity.sprite as i32 + 128) % 256) as f32 / 255.0;
-            AbsoluteEntity {
-                x,
-                y,
-                vx,
-                vy,
-                type_id,
-            }
-        });
-        Self::from_entities(
-            mapped, player_x, player_y, grid_w, grid_h, span_x_px, span_y_px,
-        )
-    }
 }
 
 /// Single projectile entity exposed directly to the MLP.
@@ -892,6 +683,51 @@ struct RawProjectile {
     sub_type: f32,
 }
 
+/// Create a laser map by sampling points along each laser beam.
+///
+/// Laser Rendering (laser_rh.cpp: laser_render_ray)
+///
+/// Lasers are rendered as 4-sided trapezoid with width perpendicular to the beam:
+///
+///
+/// Calculate perpendicular offset for laser width first:
+///
+/// Then, calculate 4 corner points of the laser beam;
+///
+/// Last, clip polygon to screen and render.
+/// grc_clip_polygon_n(&clipped, 8, &corners, 4);
+/// grcg_polygon_cx(&clipped, point_count);
+///
+///
+/// Hit detection samples 12*12 boxes every 16 pixels along the centerline.
+///
+/// Type ID: `flag / 7` (laser types 1-7: shootout, fixed_wait, fixed_grow, fixed_active,
+/// fixed_shrink, fixed_shrink_and_wait, shootout_decay)
+///
+/// TODO: New type for rendered laser and actually hitbox lasers.
+
+/// Firewave map, ExAlice Phase 2 (you see) or 4 (code).
+/// Create a firewave map by sampling points along the sine wave.
+/// TODO: fill? Or don't fill?
+/// Cheeto trail map
+
+/// Create a cheeto trail map by sampling trail nodes.
+///
+/// From cheeto_u.cpp, cheetos_render.asm
+///
+/// Cheeto bullets leave a trail of 16 nodes behind them:
+/// ```cpp
+/// ```
+///
+/// cheetos_render.asm
+/// ```asm
+/// ```
+///
+/// So it only have 16 nodes and only the idx mod 2 = 1 are rendered.
+/// From like 15, 13, ... 1 (1 is the head, or we can say, 0)
+/// flags: CF_DECELERATE (1) = slowing down, CF_SPEEDUP (2) = speeding up
+/// Custom entity map. I only see 05 use it.
+/// Create a custom entity map from custom entities.
 pub fn extract_projectile_entities(
     lasers: &[crate::observation::frame::Laser],
     firewaves: &[crate::observation::frame::Firewave],
@@ -1058,7 +894,7 @@ impl ProjectileMap {
             let start_dist = laser.starts_at_distance as f32 / 16.0;
             let end_dist = laser.ends_at_distance as f32 / 16.0;
             let beam_length = (end_dist - start_dist).abs();
-            let num_samples = (beam_length / 16.0).ceil() as i32 + 1;
+            let num_samples = beam_length.ceil() as i32 + 1;
             for i in 0..num_samples {
                 let t = if num_samples > 1 {
                     i as f32 / (num_samples - 1) as f32
@@ -1093,16 +929,38 @@ impl ProjectileMap {
 
         // Cheeto trails: category type_id base = 0.50..0.75
         for trail in cheeto_trails {
+            let mut prev: Option<(f32, f32)> = None;
             for node_i in (1..16).step_by(2).rev() {
                 let x = trail.node_pos[node_i].x as f32 / 16.0;
                 let y = trail.node_pos[node_i].y as f32 / 16.0;
-                all_entities.push(AbsoluteEntity {
-                    x,
-                    y,
-                    vx: 0.0,
-                    vy: 0.0,
-                    type_id: 0.50 + (trail.flag as f32 / 2.0) * 0.25, // 0.50..0.75
-                });
+                if let Some((prev_x, prev_y)) = prev {
+                    let dx = x - prev_x;
+                    let dy = y - prev_y;
+                    let distance = (dx * dx + dy * dy).sqrt();
+                    // FIX: There is no gap to excape, agent.
+                    let steps = distance.ceil().max(1.0) as usize;
+                    for s in 1..=steps {
+                        let t = s as f32 / steps as f32;
+                        all_entities.push(AbsoluteEntity {
+                            x: prev_x + dx * t,
+                            y: prev_y + dy * t,
+                            vx: 0.0,
+                            vy: 0.0,
+                            type_id: 0.50 + (trail.flag as f32 / 2.0) * 0.25,
+                        });
+                    }
+                } else {
+                    // First point
+                    all_entities.push(AbsoluteEntity {
+                        x,
+                        y,
+                        vx: 0.0,
+                        vy: 0.0,
+                        type_id: 0.50 + (trail.flag as f32 / 2.0) * 0.25,
+                    });
+                }
+
+                prev = Some((x, y));
             }
         }
 

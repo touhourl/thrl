@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  rrr-ci:
+    uses: ./.github/workflows/rrr-ci.yml
+
+  thmp:
+    uses: ./.github/workflows/thmp.yml
+
+  release:
+    needs:
+      - rrr-ci
+      - thmp
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download binary
+        uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create gh release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --generate-notes --title "$GITHUB_REF_NAME"

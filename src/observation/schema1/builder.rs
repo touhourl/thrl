@@ -19,9 +19,8 @@ use super::{
     extract_projectile_entities,
 };
 use crate::observation::frame::Frame;
-use crate::param::ObservationConfig;
+use crate::param::RuntimeConfig;
 use serde::{Deserialize, Serialize};
-
 /*
     Observation builder of RL-rs.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
@@ -49,11 +48,12 @@ pub struct ObservationBuilder {
 
 impl Default for ObservationBuilder {
     fn default() -> Self {
+        let cfg = RuntimeConfig::global();
         Self {
-            grid_w: ObservationConfig::GRID_W,
-            grid_h: ObservationConfig::GRID_H,
-            span_x_px: ObservationConfig::SPAN_X_PX,
-            span_y_px: ObservationConfig::SPAN_Y_PX,
+            grid_w: cfg.observation.grid_w,
+            grid_h: cfg.observation.grid_h,
+            span_x_px: 384.0,
+            span_y_px: 368.0,
         }
     }
 }

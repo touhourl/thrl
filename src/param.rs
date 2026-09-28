@@ -36,6 +36,7 @@ pub struct RuntimeConfig {
     pub paths: PathSettings,
     #[serde(skip_serializing)]
     pub worker: WorkerSettings,
+    pub observation: ObservationSettings,
     pub reward: RewardSettings,
 }
 
@@ -67,8 +68,27 @@ pub struct WorkerSettings {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ObservationSettings {
+    // === obs == \\
+    pub grid_w: usize,
+    pub grid_h: usize,
+    pub feature_dim: usize,
+    pub map_channels: usize,
+    pub egocentric_map: bool,
+    pub egocentric_map_span_x_px: f32,
+    pub egocentric_map_span_y_px: f32,
+}
+
+impl ObservationSettings {
+    pub fn egocentric_map_span(&self) -> Option<(f32, f32)> {
+        self.egocentric_map
+            .then_some((self.egocentric_map_span_x_px, self.egocentric_map_span_y_px))
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RewardSettings {
-    // === REWARD === # TODO: do it in rust. This is test and experimental, and I need quick changes. Compiling and wait the `uv` to finish managing packages are such a pain
+    // === REWARD === #
     pub scales: Vec<f32>,
 }
 
@@ -103,13 +123,6 @@ impl RuntimeConfig {
     }
 }
 
-pub struct ObservationConfig;
-impl ObservationConfig {
-    pub const GRID_W: usize = 96;
-    pub const GRID_H: usize = 92;
-    pub const SPAN_X_PX: f32 = 384.0;
-    pub const SPAN_Y_PX: f32 = 368.0;
-}
 pub const STAGE_WEIGHT: f32 = 0.25;
 pub const DIFF_START_END_WEIGHT: f32 = 0.10;
 pub const RANK_WEIGHT: f32 = 0.35;
