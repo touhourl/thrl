@@ -6,7 +6,7 @@ build-backend = "maturin"
 profile = "release"
 [project]
 name = "rrr"
-version = "0.2.0"
+version = "0.2.1"
 description = "Touhou Reinforcement Learning Framework"
 requires-python = ">=3.14"
 dependencies = [
