@@ -33,7 +33,7 @@
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-use crate::observation::frame::*;
+use super::frame::*;
 use crate::param::RuntimeConfig;
 use serde::{Deserialize, Serialize};
 
@@ -329,6 +329,20 @@ impl SpatialMap {
 // Typed wrappers for convenience. These exist so you don't have to impl the
 // trait or deal with generics when you just want a bullet map, enemy map, etc.
 
+impl GridEntity for Entity {
+    fn get_pixel_pos(&self) -> (f32, f32) {
+        (self.motion.x, self.motion.y)
+    }
+
+    fn get_pixel_velocity(&self) -> (f32, f32) {
+        (self.motion.vx, self.motion.vy)
+    }
+
+    fn get_type_id(&self) -> f32 {
+        self.type_id
+    }
+}
+
 pub type BulletMap = SpatialMap;
 
 impl BulletMap {
@@ -339,22 +353,10 @@ impl BulletMap {
         span_x_px: f32,
         span_y_px: f32,
     ) -> Self {
-        let (px, py) = state.player.pos.to_pixels();
-        let bullets = state.get_active_bullets().into_iter().map(|b| {
-            let (bx, by) = b.get_pixel_pos();
-            let type_id = (b.patnum.unsigned_abs() % 256) as f32 / 255.0;
-            AbsoluteEntity {
-                x: bx,
-                y: by,
-                vx: b.pos.velocity_pixels().0,
-                vy: b.pos.velocity_pixels().1,
-                type_id,
-            }
-        });
         Self::from_entities_with_mode(
-            bullets,
-            px,
-            py,
+            state.bullets.iter().copied(),
+            state.player.motion.x,
+            state.player.motion.y,
             grid_w,
             grid_h,
             span_x_px,
@@ -378,21 +380,17 @@ impl BulletFeature {
 /// Extract top-K nearest bullets as direct MLP features.
 /// Returns K * 7 = 112 floats, zeros if fewer than K bullets active.
 pub fn extract_bullet_entities(state: &Frame, span_x_px: f32, span_y_px: f32) -> Vec<f32> {
-    let (px, py) = state.player.pos.to_pixels();
+    let px = state.player.motion.x;
+    let py = state.player.motion.y;
     let max_dist = (span_x_px.powi(2) + span_y_px.powi(2)).sqrt();
 
-    let mut bullets_with_dist: Vec<(f32, f32, f32, f32, f32, f32, f32)> = state
-        .get_active_bullets()
-        .into_iter()
+    let mut bullets_with_dist: Vec<(f32, &Entity)> = state
+        .bullets
+        .iter()
         .map(|b| {
-            let (bx, by) = b.get_pixel_pos();
-            let dx = bx - px;
-            let dy = by - py;
-            let (vx, vy) = b.pos.velocity_pixels();
-            let dist = (dx * dx + dy * dy).sqrt();
-            let speed = (vx * vx + vy * vy).sqrt();
-            let type_id = (b.patnum.unsigned_abs() % 256) as f32 / 255.0;
-            (dist, dx, dy, vx, vy, type_id, speed)
+            let dx = b.motion.x - px;
+            let dy = b.motion.y - py;
+            ((dx * dx + dy * dy).sqrt(), b)
         })
         .collect();
 
@@ -401,15 +399,19 @@ pub fn extract_bullet_entities(state: &Frame, span_x_px: f32, span_y_px: f32) ->
 
     let mut result = Vec::with_capacity(BulletFeature::TOTAL_FEATURES);
     for i in 0..BulletFeature::MAX_ENTITIES {
-        if i < bullets_with_dist.len() {
-            let (dist, dx, dy, vx, vy, type_id, speed) = bullets_with_dist[i];
-            result.push((dx / span_x_px).clamp(-1.0, 1.0));
-            result.push((dy / span_y_px).clamp(-1.0, 1.0));
-            result.push((vx / 12.0).clamp(-1.0, 1.0));
-            result.push((vy / 12.0).clamp(-1.0, 1.0));
-            result.push(type_id);
-            result.push((speed / 12.0).clamp(0.0, 1.0));
-            result.push((dist / max_dist).clamp(0.0, 1.0));
+        if let Some((dist, b)) = bullets_with_dist.get(i) {
+            let dx = b.motion.x - px;
+            let dy = b.motion.y - py;
+            let speed = (b.motion.vx * b.motion.vx + b.motion.vy * b.motion.vy).sqrt();
+            result.extend_from_slice(&[
+                (dx / span_x_px).clamp(-1.0, 1.0),
+                (dy / span_y_px).clamp(-1.0, 1.0),
+                (b.motion.vx / 12.0).clamp(-1.0, 1.0),
+                (b.motion.vy / 12.0).clamp(-1.0, 1.0),
+                b.type_id,
+                (speed / 12.0).clamp(0.0, 1.0),
+                (*dist / max_dist).clamp(0.0, 1.0),
+            ]);
         } else {
             result.extend_from_slice(&[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0]);
         }
@@ -428,52 +430,31 @@ impl BossMap {
         span_x_px: f32,
         span_y_px: f32,
     ) -> Self {
-        let (px, py) = state.player.pos.to_pixels();
+        let (px, py) = (state.player.motion.x, state.player.motion.y);
         let mut bosses = Vec::new();
 
         // Add main boss if present
         if let Some(boss) = &state.boss
             && boss.hp > 0
         {
-            let (bx, by) = boss.pos.to_pixels();
             // Type ID: 0.0 for main boss
-            bosses.push(AbsoluteEntity {
-                x: bx,
-                y: by,
-                vx: boss.pos.velocity_pixels().0,
-                vy: boss.pos.velocity_pixels().1,
-                type_id: 0.0,
-            });
+            bosses.push(boss.entity);
         }
 
         // Add second boss if present
         if let Some(boss_2) = &state.boss_2
             && boss_2.hp > 0
         {
-            let (bx, by) = boss_2.pos.to_pixels();
             // Type ID: 0.33 for second boss
-            bosses.push(AbsoluteEntity {
-                x: bx,
-                y: by,
-                vx: boss_2.pos.velocity_pixels().0,
-                vy: boss_2.pos.velocity_pixels().1,
-                type_id: 1.0 / 3.0,
-            });
+            bosses.push(boss_2.entity);
         }
 
         // Add midboss if present
         if let Some(midboss) = &state.midboss
             && midboss.hp > 0
         {
-            let (bx, by) = midboss.pos.to_pixels();
             // Type ID: 0.67 for midboss
-            bosses.push(AbsoluteEntity {
-                x: bx,
-                y: by,
-                vx: midboss.pos.velocity_pixels().0,
-                vy: midboss.pos.velocity_pixels().1,
-                type_id: 2.0 / 3.0,
-            });
+            bosses.push(midboss.entity);
         }
 
         Self::from_entities_with_mode(
@@ -499,22 +480,10 @@ impl EnemyMap {
         span_x_px: f32,
         span_y_px: f32,
     ) -> Self {
-        let (px, py) = state.player.pos.to_pixels();
-        let enemies = state.get_active_enemies().into_iter().map(|e| {
-            let (ex, ey) = e.get_pixel_pos();
-            let type_id = e.subtype as f32 / 255.0;
-            AbsoluteEntity {
-                x: ex,
-                y: ey,
-                vx: e.pos.velocity_pixels().0,
-                vy: e.pos.velocity_pixels().1,
-                type_id,
-            }
-        });
         Self::from_entities_with_mode(
-            enemies,
-            px,
-            py,
+            state.enemies.iter().copied(),
+            state.player.motion.x,
+            state.player.motion.y,
             grid_w,
             grid_h,
             span_x_px,
@@ -523,6 +492,7 @@ impl EnemyMap {
         )
     }
 }
+
 /*
 pub type DropMap = SpatialMap;
 
@@ -550,84 +520,6 @@ impl DropMap {
     }
 }
 */
-#[derive(Clone)]
-struct AbsoluteEntity {
-    x: f32,
-    y: f32,
-    vx: f32,
-    vy: f32,
-    type_id: f32,
-}
-
-impl GridEntity for AbsoluteEntity {
-    fn get_pixel_pos(&self) -> (f32, f32) {
-        (self.x, self.y)
-    }
-
-    fn get_pixel_velocity(&self) -> (f32, f32) {
-        (self.vx, self.vy)
-    }
-
-    fn get_type_id(&self) -> f32 {
-        self.type_id
-    }
-}
-
-/// My original algorithm was false. I wrongly used table instead of index due to my shitty
-/// asm skills. Also, where it is not on it, will not be here.
-fn sample_firewave(firewave: &Firewave, span_x_px: f32, span_y_px: f32) -> Vec<(f32, f32, bool)> {
-    if firewave.alive == 0 {
-        return Vec::new();
-    }
-
-    let bottom = firewave.bottom;
-    let amp = firewave.amp as f32;
-    let is_right = firewave.is_right != 0;
-
-    let mut y = (bottom & !0xF) as f32;
-    let mut angle = ((bottom & 0xF) / 2) as f32;
-    let mut points = Vec::new();
-
-    while y >= 16.0 && angle < 128.0 {
-        // Only keep points inside the visible playfield
-        if y <= span_y_px {
-            // 8-bit angle, 2^8
-            let angle_rad = 2.0 * angle * std::f32::consts::PI / 256.0; // 2 \pi r
-            let x_offset = amp * angle_rad.sin();
-
-            let x = if is_right {
-                span_x_px - x_offset
-            } else {
-                x_offset + 16.0
-            };
-
-            if x >= 0.0 && x <= span_x_px {
-                if is_right {
-                    // this will be the right side
-                    let start_x = x.ceil() as i32;
-                    let end_x = span_x_px.floor() as i32;
-
-                    for fill_x in start_x..=end_x {
-                        points.push((fill_x as f32, y, is_right));
-                    }
-                } else {
-                    // This goes to the left
-                    let start_x = 16;
-                    let end_x = x.floor() as i32;
-
-                    for fill_x in start_x..=end_x {
-                        points.push((fill_x as f32, y, is_right));
-                    }
-                }
-            }
-        }
-        y -= 1.0;
-        angle += 0.5;
-    }
-
-    points
-}
-
 /// Single projectile entity exposed directly to the MLP.
 /// 7 floats: dx, dy, vx, vy, type_id, danger, distance
 #[derive(Debug, Clone, Copy)]
@@ -672,174 +564,22 @@ impl ProjectileFeature {
     }
 }
 
-#[derive(Clone)]
-struct RawProjectile {
-    x: f32,
-    y: f32,
-    vx: f32,
-    vy: f32,
-    /// 0.0=laser, 0.33=firewave, 0.66=cheeto, 1.0=custom
-    category: f32,
-    sub_type: f32,
-}
-
-/// Create a laser map by sampling points along each laser beam.
-///
-/// Laser Rendering (laser_rh.cpp: laser_render_ray)
-///
-/// Lasers are rendered as 4-sided trapezoid with width perpendicular to the beam:
-///
-///
-/// Calculate perpendicular offset for laser width first:
-///
-/// Then, calculate 4 corner points of the laser beam;
-///
-/// Last, clip polygon to screen and render.
-/// grc_clip_polygon_n(&clipped, 8, &corners, 4);
-/// grcg_polygon_cx(&clipped, point_count);
-///
-///
-/// Hit detection samples 12*12 boxes every 16 pixels along the centerline.
-///
-/// Type ID: `flag / 7` (laser types 1-7: shootout, fixed_wait, fixed_grow, fixed_active,
-/// fixed_shrink, fixed_shrink_and_wait, shootout_decay)
-///
-/// TODO: New type for rendered laser and actually hitbox lasers.
-
-/// Firewave map, ExAlice Phase 2 (you see) or 4 (code).
-/// Create a firewave map by sampling points along the sine wave.
-/// TODO: fill? Or don't fill?
-/// Cheeto trail map
-
-/// Create a cheeto trail map by sampling trail nodes.
-///
-/// From cheeto_u.cpp, cheetos_render.asm
-///
-/// Cheeto bullets leave a trail of 16 nodes behind them:
-/// ```cpp
-/// ```
-///
-/// cheetos_render.asm
-/// ```asm
-/// ```
-///
-/// So it only have 16 nodes and only the idx mod 2 = 1 are rendered.
-/// From like 15, 13, ... 1 (1 is the head, or we can say, 0)
-/// flags: CF_DECELERATE (1) = slowing down, CF_SPEEDUP (2) = speeding up
-/// Custom entity map. I only see 05 use it.
-/// Create a custom entity map from custom entities.
 pub fn extract_projectile_entities(
-    lasers: &[crate::observation::frame::Laser],
-    firewaves: &[crate::observation::frame::Firewave],
-    cheeto_trails: &[crate::observation::frame::CheetoTrail],
-    custom_entities: &[crate::observation::frame::CustomEntity],
+    projectiles: &[Projectile],
     player_x: f32,
     player_y: f32,
     span_x_px: f32,
     span_y_px: f32,
 ) -> Vec<f32> {
     let max_dist = (span_x_px.powi(2) + span_y_px.powi(2)).sqrt();
-    let mut all_projectiles: Vec<(f32, RawProjectile)> = Vec::new();
-
-    // Lasers: sample points along each beam (same as LaserMap but we keep individual points)
-    for laser in lasers {
-        let origin_x = laser.origin_x as f32 / 16.0;
-        let origin_y = laser.origin_y as f32 / 16.0;
-        let angle_rad = (laser.angle as f32 / 256.0) * 2.0 * std::f32::consts::PI;
-        let cos_a = angle_rad.cos();
-        let sin_a = angle_rad.sin();
-        let start_dist = laser.starts_at_distance as f32 / 16.0;
-        let end_dist = laser.ends_at_distance as f32 / 16.0;
-        let beam_length = (end_dist - start_dist).abs();
-        // Sample fewer points for entity list (every 32px instead of 16)
-        let num_samples = ((beam_length / 32.0).ceil() as i32 + 1).min(8);
-        for i in 0..num_samples {
-            let t = if num_samples > 1 {
-                i as f32 / (num_samples - 1) as f32
-            } else {
-                0.5
-            };
-            let dist_along = start_dist + t * (end_dist - start_dist);
-            let x = origin_x + cos_a * dist_along;
-            let y = origin_y + sin_a * dist_along;
-            let dx = x - player_x;
-            let dy = y - player_y;
-            let dist = (dx * dx + dy * dy).sqrt();
-            all_projectiles.push((
-                dist,
-                RawProjectile {
-                    x,
-                    y,
-                    vx: 0.0,
-                    vy: 0.0,
-                    category: 0.0,
-                    sub_type: laser.flag as f32 / 7.0,
-                },
-            ));
-        }
-    }
-
-    // Firewaves: use shared sampling function
-    for firewave in firewaves {
-        for (x, y, is_right) in sample_firewave(firewave, span_x_px, span_y_px) {
-            let dx = x - player_x;
-            let dy = y - player_y;
-            let dist = (dx * dx + dy * dy).sqrt();
-            all_projectiles.push((
-                dist,
-                RawProjectile {
-                    x,
-                    y,
-                    vx: 0.0,
-                    vy: 0.0,
-                    category: 1.0 / 3.0,
-                    sub_type: if is_right { 1.0 } else { 0.0 },
-                },
-            ));
-        }
-    }
-
-    // Cheeto trails sample node
-    for trail in cheeto_trails {
-        for node_i in (1..16).step_by(2).rev() {
-            let x = trail.node_pos[node_i].x as f32 / 16.0;
-            let y = trail.node_pos[node_i].y as f32 / 16.0;
-            let dx = x - player_x;
-            let dy = y - player_y;
-            let dist = (dx * dx + dy * dy).sqrt();
-            all_projectiles.push((
-                dist,
-                RawProjectile {
-                    x,
-                    y,
-                    vx: 0.0,
-                    vy: 0.0,
-                    category: 2.0 / 3.0,
-                    sub_type: trail.flag as f32 / 2.0,
-                },
-            ));
-        }
-    }
-
-    // Custom entities
-    for entity in custom_entities {
-        let (x, y) = entity.pos.to_pixels();
-        let (vx, vy) = entity.pos.velocity_pixels();
-        let dx = x - player_x;
-        let dy = y - player_y;
-        let dist = (dx * dx + dy * dy).sqrt();
-        all_projectiles.push((
-            dist,
-            RawProjectile {
-                x,
-                y,
-                vx,
-                vy,
-                category: 1.0,
-                sub_type: ((entity.sprite as i32 + 128) % 256) as f32 / 255.0,
-            },
-        ));
-    }
+    let mut all_projectiles: Vec<(f32, &Projectile)> = projectiles
+        .iter()
+        .map(|projectile| {
+            let dx = projectile.motion.x - player_x;
+            let dy = projectile.motion.y - player_y;
+            ((dx * dx + dy * dy).sqrt(), projectile)
+        })
+        .collect();
 
     // Sort by distance to player (nearest first)
     all_projectiles.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
@@ -848,14 +588,14 @@ pub fn extract_projectile_entities(
     let mut result = Vec::with_capacity(ProjectileFeature::TOTAL_FEATURES);
     for i in 0..ProjectileFeature::MAX_ENTITIES {
         let feat = if i < all_projectiles.len() {
-            let (dist, ref proj) = all_projectiles[i];
+            let (dist, projectile) = all_projectiles[i];
             ProjectileFeature {
-                dx: ((proj.x - player_x) / span_x_px).clamp(-1.0, 1.0),
-                dy: ((proj.y - player_y) / span_y_px).clamp(-1.0, 1.0),
-                vx: (proj.vx / 12.0).clamp(-1.0, 1.0),
-                vy: (proj.vy / 12.0).clamp(-1.0, 1.0),
-                type_id: proj.category,
-                sub_type: proj.sub_type,
+                dx: ((projectile.motion.x - player_x) / span_x_px).clamp(-1.0, 1.0),
+                dy: ((projectile.motion.y - player_y) / span_y_px).clamp(-1.0, 1.0),
+                vx: (projectile.motion.vx / 12.0).clamp(-1.0, 1.0),
+                vy: (projectile.motion.vy / 12.0).clamp(-1.0, 1.0),
+                type_id: projectile.type_id,
+                sub_type: projectile.sub_type,
                 distance: (dist / max_dist).clamp(0.0, 1.0),
             }
         } else {
@@ -871,10 +611,7 @@ pub type ProjectileMap = SpatialMap;
 
 impl ProjectileMap {
     pub fn from_all_projectiles(
-        lasers: &[crate::observation::frame::Laser],
-        firewaves: &[crate::observation::frame::Firewave],
-        cheeto_trails: &[crate::observation::frame::CheetoTrail],
-        custom_entities: &[crate::observation::frame::CustomEntity],
+        projectiles: &[Entity],
         player_x: f32,
         player_y: f32,
         grid_w: usize,
@@ -882,104 +619,8 @@ impl ProjectileMap {
         span_x_px: f32,
         span_y_px: f32,
     ) -> Self {
-        let mut all_entities: Vec<AbsoluteEntity> = Vec::new();
-
-        // Lasers: category type_id base = 0.0..0.25
-        for laser in lasers {
-            let origin_x = laser.origin_x as f32 / 16.0;
-            let origin_y = laser.origin_y as f32 / 16.0;
-            let angle_rad = (laser.angle as f32 / 256.0) * 2.0 * std::f32::consts::PI;
-            let cos_a = angle_rad.cos();
-            let sin_a = angle_rad.sin();
-            let start_dist = laser.starts_at_distance as f32 / 16.0;
-            let end_dist = laser.ends_at_distance as f32 / 16.0;
-            let beam_length = (end_dist - start_dist).abs();
-            let num_samples = beam_length.ceil() as i32 + 1;
-            for i in 0..num_samples {
-                let t = if num_samples > 1 {
-                    i as f32 / (num_samples - 1) as f32
-                } else {
-                    0.5
-                };
-                let dist_along = start_dist + t * (end_dist - start_dist);
-                let x = origin_x + cos_a * dist_along;
-                let y = origin_y + sin_a * dist_along;
-                all_entities.push(AbsoluteEntity {
-                    x,
-                    y,
-                    vx: 0.0,
-                    vy: 0.0,
-                    type_id: (laser.flag as f32 / 7.0) * 0.25, // 0.0..0.25 range
-                });
-            }
-        }
-
-        // Firewaves: category type_id base = 0.25..0.50
-        for firewave in firewaves {
-            for (x, y, is_right) in sample_firewave(firewave, span_x_px, span_y_px) {
-                all_entities.push(AbsoluteEntity {
-                    x,
-                    y,
-                    vx: 0.0,
-                    vy: 0.0,
-                    type_id: 0.25 + if is_right { 0.125 } else { 0.0 }, // 0.25..0.50
-                });
-            }
-        }
-
-        // Cheeto trails: category type_id base = 0.50..0.75
-        for trail in cheeto_trails {
-            let mut prev: Option<(f32, f32)> = None;
-            for node_i in (1..16).step_by(2).rev() {
-                let x = trail.node_pos[node_i].x as f32 / 16.0;
-                let y = trail.node_pos[node_i].y as f32 / 16.0;
-                if let Some((prev_x, prev_y)) = prev {
-                    let dx = x - prev_x;
-                    let dy = y - prev_y;
-                    let distance = (dx * dx + dy * dy).sqrt();
-                    // FIX: There is no gap to excape, agent.
-                    let steps = distance.ceil().max(1.0) as usize;
-                    for s in 1..=steps {
-                        let t = s as f32 / steps as f32;
-                        all_entities.push(AbsoluteEntity {
-                            x: prev_x + dx * t,
-                            y: prev_y + dy * t,
-                            vx: 0.0,
-                            vy: 0.0,
-                            type_id: 0.50 + (trail.flag as f32 / 2.0) * 0.25,
-                        });
-                    }
-                } else {
-                    // First point
-                    all_entities.push(AbsoluteEntity {
-                        x,
-                        y,
-                        vx: 0.0,
-                        vy: 0.0,
-                        type_id: 0.50 + (trail.flag as f32 / 2.0) * 0.25,
-                    });
-                }
-
-                prev = Some((x, y));
-            }
-        }
-
-        // Custom entities: category type_id base = 0.75..1.0
-        for entity in custom_entities {
-            let (x, y) = entity.pos.to_pixels();
-            let (vx, vy) = entity.pos.velocity_pixels();
-            let sub = ((entity.sprite as i32 + 128) % 256) as f32 / 255.0;
-            all_entities.push(AbsoluteEntity {
-                x,
-                y,
-                vx,
-                vy,
-                type_id: 0.75 + sub * 0.25,
-            });
-        }
-
         Self::from_entities_with_mode(
-            all_entities,
+            projectiles.iter().copied(),
             player_x,
             player_y,
             grid_w,
@@ -1004,24 +645,18 @@ impl DropFeatures {
     pub const FEATURES_PER_ITEM: usize = 3;
     pub const TOTAL_FEATURES: usize = Self::MAX_ITEMS * Self::FEATURES_PER_ITEM; // 12
 
-    pub fn from_game_state(
-        state: &crate::observation::frame::Frame,
-        span_x_px: f32,
-        span_y_px: f32,
-    ) -> Self {
-        let (px, py) = state.player.pos.to_pixels();
+    pub fn from_game_state(state: &Frame, span_x_px: f32, span_y_px: f32) -> Self {
+        let (px, py) = (state.player.motion.x, state.player.motion.y);
         let _max_dist = (span_x_px.powi(2) + span_y_px.powi(2)).sqrt();
 
         let mut items_with_dist: Vec<(f32, f32, f32, f32)> = state
-            .get_active_items()
-            .into_iter()
+            .items
+            .iter()
             .map(|it| {
-                let (ix, iy) = it.get_pixel_pos();
-                let dx = ix - px;
-                let dy = iy - py;
+                let dx = it.motion.x - px;
+                let dy = it.motion.y - py;
                 let dist = (dx * dx + dy * dy).sqrt();
-                let type_id = it.item_type as f32 / 6.0;
-                (dist, dx, dy, type_id)
+                (dist, dx, dy, it.type_id)
             })
             .collect();
 

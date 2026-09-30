@@ -3,11 +3,13 @@ pub mod cfg;
 pub mod enemies;
 pub mod items;
 pub mod key;
+pub mod observation;
 pub mod offsets;
 pub mod player;
 pub mod projectiles;
 pub mod readers;
 pub mod resident;
+pub mod state;
 pub mod types;
 pub mod watcher;
 

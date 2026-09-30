@@ -1,4 +1,5 @@
 //! [copy]
+use super::frame::Frame;
 use super::{
     BossFeatures,
     BossMap,
@@ -18,7 +19,6 @@ use super::{
     // CustomEntityMap
     extract_projectile_entities,
 };
-use crate::observation::frame::Frame;
 use crate::param::RuntimeConfig;
 use serde::{Deserialize, Serialize};
 /*
@@ -96,13 +96,10 @@ impl ObservationBuilder {
             self.span_y_px,
         );
 
-        let (px, py) = state.player.pos.to_pixels();
+        let (px, py) = (state.player.motion.x, state.player.motion.y);
 
         let projectile_map = ProjectileMap::from_all_projectiles(
-            &state.lasers,
-            &state.firewaves,
-            &state.cheeto_trails,
-            &state.custom_entities,
+            &state.projectile_map,
             px,
             py,
             self.grid_w,
@@ -121,10 +118,7 @@ impl ObservationBuilder {
 
         // Entity-level features: top-16 nearest projectiles as direct MLP input
         let projectile_entities = extract_projectile_entities(
-            &state.lasers,
-            &state.firewaves,
-            &state.cheeto_trails,
-            &state.custom_entities,
+            &state.projectiles,
             px,
             py,
             self.span_x_px,
@@ -181,7 +175,10 @@ pub struct Observation {
 
 impl Observation {
     pub fn to_flattened(&self) -> Vec<f32> {
-        let mut vec = Vec::new();
+        let mut vec = Vec::with_capacity(Self::feature_count(
+            self.bullet_map.grid_w,
+            self.bullet_map.grid_h,
+        ));
 
         vec.extend(self.to_feature_vec());
         vec.extend(self.to_map_tensor());
@@ -191,7 +188,7 @@ impl Observation {
 
     /// All scalar/entity features: 273
     pub fn to_feature_vec(&self) -> Vec<f32> {
-        let mut vec = Vec::new();
+        let mut vec = Vec::with_capacity(Self::feature_only_count());
         vec.extend(self.player.to_vec());
         vec.extend(self.boss.to_vec());
         vec.extend(self.game_state.to_vec());
@@ -203,7 +200,9 @@ impl Observation {
 
     /// Spatial maps: bullet + enemy + projectile(merged) + boss = 4 maps * 6 channels = 24 channels
     pub fn to_map_tensor(&self) -> Vec<f32> {
-        let mut vec = Vec::new();
+        let mut vec = Vec::with_capacity(
+            self.bullet_map.grid_w * self.bullet_map.grid_h * Self::map_channel_count(),
+        );
         vec.extend(self.bullet_map.to_flattened());
         vec.extend(self.enemy_map.to_flattened());
         vec.extend(self.projectile_map.to_flattened());

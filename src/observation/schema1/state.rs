@@ -1,4 +1,4 @@
-use crate::observation::frame::Frame;
+use super::frame::Frame;
 use serde::{Deserialize, Serialize};
 
 /*
@@ -32,17 +32,16 @@ impl StateFeatures {
     pub fn from_game_state(state: &Frame) -> Self {
         Self {
             // 7 stages (6 in resident)
-            stage_norm: (state.resident.stage as f32 / 6.0).clamp(0.0, 1.0),
+            stage_norm: state.state.stage_norm,
             // game limited: actually only to 999.
-            graze_norm: (state.stage_collection.stage_graze as f32 / 1000.0).clamp(0.0, 1.0),
+            graze_norm: (state.state.graze as f32 / 1000.0).clamp(0.0, 1.0),
             // no shit but not used.... since th05
-            score_norm: (state.resident.score as f32 / 100_000_000.0).clamp(0.0, 1.0),
+            score_norm: (state.state.score as f32 / 100_000_000.0).clamp(0.0, 1.0),
             // absolutely not more than 10, that's why the specific cfg gen i cannot do 99 lives
-            miss_count_norm: (state.resident.miss_count as f32 / 10.0).clamp(0.0, 1.0),
+            miss_count_norm: (state.state.misses as f32 / 10.0).clamp(0.0, 1.0),
             // I think it is reasonable, tho I have never collected so much.
-            point_items_norm: (state.stage_collection.point_items_stage as f32 / 100.0)
-                .clamp(0.0, 1.0),
-            rank_norm: (state.resident.rank as f32 / 3.0).clamp(0.0, 1.0), //4 ranks
+            point_items_norm: (state.state.point_items as f32 / 100.0).clamp(0.0, 1.0),
+            rank_norm: state.state.rank_norm, //4 ranks
         }
     }
 

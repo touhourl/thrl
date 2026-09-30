@@ -1,4 +1,4 @@
-use crate::observation::frame::Frame;
+use super::frame::Frame;
 
 /*
     Reward algorithm of rrr.
@@ -59,38 +59,32 @@ pub fn calculate_reward_m(prev_state: Option<&Frame>, curr_state: &Frame) -> Vec
     // By this we can address the problem from other papers.
     // Actually it was already done in RL-rs in April. Why did
     // they not thought this penity of corner camping?
-    let (px, py) = curr_state.player.pos.to_pixels();
+    let (px, py) = (curr_state.player.motion.x, curr_state.player.motion.y);
     rewards[0] -= corner_penalty(px, py);
 
-    if curr_state.resident.miss_count > prev.resident.miss_count {
+    if curr_state.state.misses > prev.state.misses {
         rewards[0] -= Reward::DEATH_REWARD;
     }
 
-    let graze_delta = positive_u16_delta(
-        curr_state.stage_collection.stage_graze,
-        prev.stage_collection.stage_graze,
-    );
+    let graze_delta = positive_u16_delta(curr_state.state.graze, prev.state.graze);
     // Graze belongs to here btw.
     rewards[1] += graze_delta * Reward::GRAZE_REWARD;
 
     rewards[1] += boss_damage_reward(prev, curr_state);
 
-    if curr_state.resident.miss_count > prev.resident.miss_count {
+    if curr_state.state.misses > prev.state.misses {
         let unused_bombs = prev.rem_bombs_internal as f32;
         rewards[2] -= unused_bombs * Reward::BOMB_REWARD;
     }
 
-    if curr_state.resident.bombs_used > prev.resident.bombs_used {
+    if curr_state.state.bombs_used > prev.state.bombs_used {
         rewards[2] -= Reward::BOMB_REWARD;
     }
 
     let power_delta = positive_u8_delta(curr_state.player.power, prev.player.power);
     rewards[2] += power_delta * Reward::POWER_REWARD;
 
-    let point_delta = positive_u8_delta(
-        curr_state.stage_collection.point_items_stage,
-        prev.stage_collection.point_items_stage,
-    );
+    let point_delta = positive_u8_delta(curr_state.state.point_items, prev.state.point_items);
     rewards[2] += point_delta * Reward::POINT_REWARD;
 
     rewards.to_vec()
@@ -113,10 +107,7 @@ fn calculate_reward_internal(
     if include_positive_rewards {
         reward += Reward::SURVIVAL_REWARD;
 
-        let graze_delta = positive_u16_delta(
-            curr_state.stage_collection.stage_graze,
-            prev.stage_collection.stage_graze,
-        );
+        let graze_delta = positive_u16_delta(curr_state.state.graze, prev.state.graze);
         reward += graze_delta * Reward::GRAZE_REWARD;
 
         reward += boss_damage_reward(prev, curr_state);
@@ -124,24 +115,21 @@ fn calculate_reward_internal(
         let power_delta = positive_u8_delta(curr_state.player.power, prev.player.power);
         reward += power_delta * Reward::POWER_REWARD;
 
-        let point_delta = positive_u8_delta(
-            curr_state.stage_collection.point_items_stage,
-            prev.stage_collection.point_items_stage,
-        );
+        let point_delta = positive_u8_delta(curr_state.state.point_items, prev.state.point_items);
         reward += point_delta * Reward::POINT_REWARD;
     }
 
-    if curr_state.resident.miss_count > prev.resident.miss_count {
+    if curr_state.state.misses > prev.state.misses {
         reward -= Reward::DEATH_REWARD;
         let unused_bombs = prev.rem_bombs_internal as f32;
         reward -= unused_bombs * Reward::BOMB_REWARD;
     }
 
-    if curr_state.resident.bombs_used > prev.resident.bombs_used {
+    if curr_state.state.bombs_used > prev.state.bombs_used {
         reward -= Reward::BOMB_REWARD;
     }
 
-    let (px, py) = curr_state.player.pos.to_pixels();
+    let (px, py) = (curr_state.player.motion.x, curr_state.player.motion.y);
     reward -= corner_penalty(px, py);
 
     reward

@@ -1,7 +1,7 @@
 pub mod frame;
 pub mod schema1;
 
-use frame::Frame;
+pub use frame::Frame;
 use std::sync::Arc;
 
 /*
@@ -34,21 +34,33 @@ pub struct SchemaSpec {
     pub rewards: usize,
 }
 
-pub fn spec(schema: usize) -> Result<SchemaSpec, String> {
-    match schema {
-        1 => Ok(schema1::spec()),
-        _ => Err(format!("Unsupported observation schema: {schema}")),
+#[derive(Clone, Copy)]
+pub enum Schema {
+    Schema1,
+}
+
+impl TryFrom<usize> for Schema {
+    type Error = String;
+
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        match value {
+            1 => Ok(Self::Schema1),
+            _ => Err(format!("Unsupported observation schema: {value}")),
+        }
     }
 }
 
-pub fn encode(
-    schema: usize,
-    prev: Option<&Frame>,
-    frame: &mut Frame,
-) -> Result<EncodedState, String> {
-    frame.update_bomb_tracking(prev);
-    match schema {
-        1 => Ok(schema1::encode(prev, frame)),
-        _ => Err(format!("Unsupported observation schema: {schema}")),
+pub fn spec(schema: usize) -> Result<SchemaSpec, String> {
+    match Schema::try_from(schema)? {
+        Schema::Schema1 => Ok(schema1::spec()),
+    }
+}
+
+pub fn encode(prev: Option<&Frame>, frame: &mut Frame) -> Result<EncodedState, String> {
+    match (prev, frame) {
+        (None, Frame::Schema1(frame)) => Ok(schema1::encode(None, frame)),
+        (Some(Frame::Schema1(prev)), Frame::Schema1(frame)) => {
+            Ok(schema1::encode(Some(prev), frame))
+        }
     }
 }

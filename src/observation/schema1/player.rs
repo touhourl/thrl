@@ -1,4 +1,4 @@
-use crate::observation::frame::Frame;
+use super::frame::Frame;
 use serde::{Deserialize, Serialize};
 
 /*
@@ -51,8 +51,8 @@ pub struct PlayerFeatures {
 
 impl PlayerFeatures {
     pub fn from_game_state(state: &Frame) -> Self {
-        let (px, py) = state.player.pos.to_pixels();
-        let (vx, vy) = state.player.pos.velocity_pixels();
+        let (px, py) = (state.player.motion.x, state.player.motion.y);
+        let (vx, vy) = (state.player.motion.vx, state.player.motion.vy);
         let x_norm = ((px - MIN_X) / RANGE_X).clamp(0.0, 1.0);
         let y_norm = ((py - MIN_Y) / RANGE_Y).clamp(0.0, 1.0);
         let vx_norm = (vx / VELOCITY_NORM_DIVISOR).clamp(-1.0, 1.0);
@@ -61,23 +61,15 @@ impl PlayerFeatures {
         let walls = wall_distances(px, py);
 
         let power_norm = (state.player.power as f32 / POWER_MAX).clamp(0.0, 1.0);
-        let lives_norm = (state.resident.rem_lives as f32 / 8.0).clamp(0.0, 1.0);
+        let lives_norm = (state.player.lives as f32 / 8.0).clamp(0.0, 1.0);
         let bombs_norm = (state.rem_bombs_internal as f32 / 8.0).clamp(0.0, 1.0);
 
-        let invincible = if state.player.invincibility_time > 0
-            || state.player.invincible_via_bomb
-            || state.player.miss_frame > 0
-        {
-            1.0
-        } else {
-            0.0
-        };
-
-        let character_norm = (state.resident.playchar as f32 / 3.0).clamp(0.0, 1.0);
-        let stage_norm = (state.resident.stage as f32 / 6.0).clamp(0.0, 1.0);
-        let cfg_lives_norm = (state.resident.credit_lives as f32 / 8.0).clamp(0.0, 1.0);
-        let cfg_bombs_norm = (state.resident.credit_bombs as f32 / 8.0).clamp(0.0, 1.0);
-        let rank_norm = (state.resident.rank as f32 / 3.0).clamp(0.0, 1.0);
+        let invincible = state.player.invincible as u8 as f32;
+        let character_norm = state.player.character_norm;
+        let stage_norm = state.state.stage_norm;
+        let cfg_lives_norm = (state.player.cfg_lives as f32 / 8.0).clamp(0.0, 1.0);
+        let cfg_bombs_norm = (state.player.cfg_bombs as f32 / 8.0).clamp(0.0, 1.0);
+        let rank_norm = state.state.rank_norm;
 
         Self {
             x_norm,

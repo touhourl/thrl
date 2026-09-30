@@ -1,5 +1,6 @@
 pub mod boss;
 pub mod builder;
+pub mod frame;
 pub mod map;
 pub mod player;
 pub mod reward;
@@ -7,6 +8,7 @@ pub mod state;
 
 pub use boss::*;
 pub use builder::*;
+pub use frame::*;
 pub use map::*;
 pub use player::*;
 pub use reward::*;
@@ -48,11 +50,9 @@ pub fn spec() -> SchemaSpec {
     }
 }
 
-pub fn encode(
-    prev: Option<&crate::observation::frame::Frame>,
-    frame: &crate::observation::frame::Frame,
-) -> EncodedState {
-    let end = frame.resident.game_end_flag;
+pub fn encode(prev: Option<&frame::Frame>, frame: &mut frame::Frame) -> EncodedState {
+    frame.update_bomb_tracking(prev);
+    let end = frame.end;
     let mut rewards = reward::calculate_reward_m(prev, frame);
     if end == 1 {
         rewards[0] -= 100.0;

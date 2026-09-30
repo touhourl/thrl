@@ -4,7 +4,7 @@ use crate::games::th05c::key::{
 };
 use crate::games::th05c::readers::*;
 use crate::games::th05c::{DynAddressFinder, GameState, PlayerState};
-use crate::observation::EncodedState;
+use crate::observation::{EncodedState, Frame, Schema};
 use crate::param::RuntimeConfig;
 use std::io::ErrorKind;
 use std::time::{Duration, Instant};
@@ -156,7 +156,6 @@ impl TH05MemoryWatcher {
             custom_entities,
             firewaves,
             stage_collection,
-            rem_bombs_internal: 0,
         };
 
         Some(state)
@@ -218,8 +217,8 @@ pub struct TH05CSession {
     initial_state_sleep: Duration,
     reconnect_attempts: usize,
     reconnect_sleep: Duration,
-    schema: usize,
-    last_state: Option<GameState>,
+    schema: Schema,
+    last_state: Option<Frame>,
 }
 
 impl Drop for TH05CSession {
@@ -261,12 +260,12 @@ impl TH05CSession {
     }
 
     fn encoded_state(&mut self) -> Result<Option<EncodedState>, String> {
-        let Some(mut state) = self.read_state() else {
+        let Some(state) = self.read_state() else {
             return Ok(None);
         };
-        let encoded =
-            crate::observation::encode(self.schema, self.last_state.as_ref(), &mut state)?;
-        self.last_state = Some(state);
+        let mut frame = crate::games::th05c::observation::frame(self.schema, state)?;
+        let encoded = crate::observation::encode(self.last_state.as_ref(), &mut frame)?;
+        self.last_state = Some(frame.history());
         Ok(Some(encoded))
     }
 
@@ -382,6 +381,7 @@ impl TH05CSession {
         use std::process::Command;
 
         let worker: TH05WorkerSettings = cfg.raw["worker"].clone().try_into().unwrap();
+        let schema = Schema::try_from(cfg.runtime.schema)?;
         let export_dir = std::env::current_dir()
             .map_err(|e| format!("Failed to get cwd: {}", e))?
             .join(cfg.raw["paths"]["export_dir"].as_str().unwrap());
@@ -441,7 +441,7 @@ impl TH05CSession {
                             ),
                             reconnect_attempts: worker.reconnect_attempts,
                             reconnect_sleep: Duration::from_millis(worker.reconnect_sleep_ms),
-                            schema: cfg.runtime.schema,
+                            schema,
                             last_state: None,
                         });
                     }

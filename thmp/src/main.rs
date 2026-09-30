@@ -1,7 +1,10 @@
 use eframe::egui::{self, Color32, CornerRadius, Pos2, Rect, Sense, Vec2};
 use rrr::{
-    games::th05c::watcher::TH05CSession,
-    observation::schema1::{Observation, ObservationBuilder, SpatialMap},
+    games::th05c::{observation as th05_observation, watcher::TH05CSession},
+    observation::{
+        schema1::{Observation, ObservationBuilder, SpatialMap},
+        Frame, Schema,
+    },
     param::RuntimeConfig,
 };
 use std::collections::HashMap;
@@ -101,10 +104,16 @@ impl eframe::App for App {
         // self.keys(ctx); pause it in game.
 
         if !self.paused && self.last_read.elapsed() >= Duration::from_millis(36) {
-            if let Some(frame) = self.session.read_state() {
-                self.observation = Some(self.builder.build_observation(&frame));
+            if let Some(state) = self.session.read_state() {
+                match th05_observation::frame(Schema::Schema1, state) {
+                    Ok(Frame::Schema1(frame)) => {
+                        self.observation = Some(self.builder.build_observation(&frame));
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to convert TH05 state to observation frame: {e}");
+                    }
+                }
             }
-
             self.last_read = Instant::now();
         }
 

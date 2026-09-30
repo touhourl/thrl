@@ -1,4 +1,4 @@
-use crate::observation::frame::Frame;
+use super::frame::Frame;
 use serde::{Deserialize, Serialize};
 
 /*
@@ -41,22 +41,22 @@ pub struct BossFeatures {
 
 impl BossFeatures {
     pub fn from_game_state(state: &Frame) -> Self {
-        let (px, py) = state.player.pos.to_pixels();
+        let (px, py) = (state.player.motion.x, state.player.motion.y);
 
         let boss = state
             .boss
             .as_ref()
-            .filter(|b| b.is_active())
-            .or_else(|| state.midboss.as_ref().filter(|b| b.is_active()));
+            .filter(|b| b.hp > 0)
+            .or_else(|| state.midboss.as_ref().filter(|b| b.hp > 0));
 
         let (present, hp_norm, dx_norm, dy_norm, vx_norm, vy_norm, dist_norm) =
             if let Some(boss) = boss {
-                let (bx, by) = boss.get_pixel_pos();
+                let (bx, by) = (boss.entity.motion.x, boss.entity.motion.y);
                 let dx = bx - px;
                 let dy = by - py;
                 let dist = (dx * dx + dy * dy).sqrt();
 
-                let (vx, vy) = boss.pos.velocity_pixels();
+                let (vx, vy) = (boss.entity.motion.vx, boss.entity.motion.vy);
 
                 let hp_norm = (boss.hp.max(0) as f32 / 30000.0).clamp(0.0, 1.0);
 
@@ -74,7 +74,7 @@ impl BossFeatures {
             };
 
         // Boss 2
-        let boss_2 = state.boss_2.as_ref().filter(|b| b.is_active());
+        let boss_2 = state.boss_2.as_ref().filter(|b| b.hp > 0);
 
         let (
             boss_2_present,
@@ -85,12 +85,12 @@ impl BossFeatures {
             boss_2_vy_norm,
             boss_2_dist_norm,
         ) = if let Some(boss_2) = boss_2 {
-            let (bx, by) = boss_2.get_pixel_pos();
+            let (bx, by) = (boss_2.entity.motion.x, boss_2.entity.motion.y);
             let dx = bx - px;
             let dy = by - py;
             let dist = (dx * dx + dy * dy).sqrt();
 
-            let (vx, vy) = boss_2.pos.velocity_pixels();
+            let (vx, vy) = (boss_2.entity.motion.vx, boss_2.entity.motion.vy);
 
             let hp_norm = (boss_2.hp.max(0) as f32 / 30000.0).clamp(0.0, 1.0);
 
