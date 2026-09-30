@@ -8,7 +8,7 @@ profile = "release"
 name = "rrr"
 version = "0.2.2"
 description = "Touhou Reinforcement Learning Framework"
-requires-python = ">=3.14"
+requires-python = ">=3.13"
 dependencies = [
   "numpy>=2.5.3",
   "torch==2.14.0+xpu",
