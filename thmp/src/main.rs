@@ -1,5 +1,5 @@
 use eframe::egui::{self, Color32, CornerRadius, Pos2, Rect, Sense, Vec2};
-use rrr::{
+use thrl::{
     games::th05c::{observation as th05_observation, watcher::TH05CSession},
     observation::{
         schema1::{Observation, ObservationBuilder, SpatialMap},

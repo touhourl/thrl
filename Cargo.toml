@@ -1,5 +1,5 @@
 [package]
-name = "rrr"
+name = "thrl"
 version = "0.2.2"
 edition = "2024"
 license = "GPL-3.0-or-later"
@@ -10,7 +10,7 @@ default-members = ["."]
 resolver = "2"
 
 [lib]
-name = "rrr"
+name = "thrl"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]

@@ -2096,25 +2096,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rrr"
-version = "0.2.2"
-dependencies = [
- "csv",
- "evdev",
- "libc",
- "nix 0.31.3",
- "pyo3",
- "rand",
- "serde",
- "serde_json",
- "thiserror 2.0.20",
- "tokio",
- "toml",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "rustc-hash"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2494,7 +2475,7 @@ version = "0.1.0"
 dependencies = [
  "eframe",
  "rfd",
- "rrr",
+ "thrl",
 ]
 
 [[package]]
@@ -2504,6 +2485,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1ad99c4c6d32803332c548b1af0540b357b3f5fc0be8f6c6bfe8b2e6ae784070"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "thrl"
+version = "0.2.2"
+dependencies = [
+ "csv",
+ "evdev",
+ "libc",
+ "nix 0.31.3",
+ "pyo3",
+ "rand",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.20",
+ "tokio",
+ "toml",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

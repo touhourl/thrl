@@ -5,7 +5,7 @@ build-backend = "maturin"
 # Build artifacts with the specified Cargo profile
 profile = "release"
 [project]
-name = "rrr"
+name = "thrl"
 version = "0.2.2"
 description = "Touhou Reinforcement Learning Framework"
 requires-python = ">=3.13"
@@ -16,7 +16,7 @@ dependencies = [
 
 [tool.uv]
 index-strategy = "unsafe-best-match"
-#reinstall-package = ["rrr"] # So I do not need to advance number every time.
+#reinstall-package = ["thrl"] # So I do not need to advance number every time.
 
 [tool.uv.sources]
 torch = { index = "pytorch-xpu" }
