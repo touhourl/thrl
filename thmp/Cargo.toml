@@ -3,6 +3,8 @@ name = "thmp"
 version = "0.1.0"
 edition = "2024"
 license = "GPL-3.0-or-later"
+description = "Map viewer for thrl project"
+repository = "https://codeberg.org/thrl/thrl"
 
 [dependencies]
 thrl = { path = "..", default-features = false }

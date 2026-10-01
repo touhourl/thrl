@@ -3,6 +3,8 @@ name = "thrl"
 version = "0.2.2"
 edition = "2024"
 license = "GPL-3.0-or-later"
+description = "The Touhou Reinforcement Learning Project"
+repository = "https://codeberg.org/thrl/thrl"
 
 [workspace]
 members = ["thmp"]
