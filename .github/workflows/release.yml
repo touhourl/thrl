@@ -6,7 +6,7 @@ on:
       - "v*"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   rrr-ci:
@@ -15,12 +15,69 @@ jobs:
   thmp:
     uses: ./.github/workflows/thmp.yml
 
-  release:
+  pypi:
+    name: Publish (pypi)
     needs:
       - rrr-ci
       - thmp
 
     runs-on: ubuntu-latest
+
+    environment:
+      name: release
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Download wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: wheels-*
+          path: dist
+          merge-multiple: true
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  crates:
+    name: Publish to crates.io
+    needs:
+      - rrr-ci
+      - thmp
+
+    runs-on: ubuntu-latest
+
+    environment:
+      name: release
+
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@7
+
+      - name: auth crates.io
+        id: crates-auth
+        uses: rust-lang/crates-io-auth-action@v1
+
+      - name: crates.io
+        run: cargo publish --locked && cargo publish -p thmp --locked
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ steps.crates-auth.outputs.token }}
+
+  release:
+    name: gh
+    needs:
+      - pypi
+      - crates
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
 
     steps:
       - name: Download binary
