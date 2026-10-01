@@ -187,7 +187,7 @@ impl EpisodeCoordinator {
 }
 // 208 Implementations??? rust-analyzer, are you kidding me???
 // by the way I am not a fan with Mutex and Arc.
-#[pyclass(module = "rrr")]
+#[pyclass(module = "thrl")]
 pub struct Collector {
     cfg: RuntimeConfig,
     request_rx: Mutex<mpsc::Receiver<InferenceEnvelope>>,
