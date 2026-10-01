@@ -26,7 +26,7 @@ import os
 import threading
 import time
 
-import rrr
+import thrl
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -41,15 +41,15 @@ def train() -> None:
     :raises ___ don't know, any errors
     :return None
     """
-    rrr.init_logging()
-    runtime_config = json.loads(rrr.runtime_config_json())
+    thrl.init_logging()
+    runtime_config = json.loads(thrl.runtime_config_json())
     runtime_cfg = runtime_config["runtime"]
     paths_cfg = runtime_config["paths"]
     training_cfg = runtime_config["training"]
     worker_cfg = runtime_config["worker"]
     model_cfg = runtime_config["model"]
     gru_cfg = runtime_config["gru"]
-    env_spec = json.loads(rrr.environment_spec_json())
+    env_spec = json.loads(thrl.environment_spec_json())
     lagrangian_cfg = runtime_config["lagrangian"]
 
     if runtime_cfg["algorithm"] != "moppo":
@@ -191,7 +191,7 @@ def train() -> None:
     except Exception as e:
         logging.warning(f"Checkpoint load failed: {e}. Starting fresh.")
 
-    collector = rrr.Collector(
+    collector = thrl.Collector(
         start_ep,
         update_step,
         cfg_json,

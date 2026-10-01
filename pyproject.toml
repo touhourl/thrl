@@ -1,11 +1,14 @@
 [build-system]
 requires = ["maturin>=1.14.1"]
 build-backend = "maturin"
+
 [tool.maturin]
 # Build artifacts with the specified Cargo profile
 profile = "release"
+module-name = "thrl"
+
 [project]
-name = "thrl"
+name = "thrl-rs"
 version = "0.2.2"
 description = "Touhou Reinforcement Learning Framework"
 requires-python = ">=3.13"

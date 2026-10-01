@@ -57,7 +57,7 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/checkout@7
+      - uses: actions/checkout@v7
 
       - name: auth crates.io
         id: crates-auth

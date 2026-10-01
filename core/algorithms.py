@@ -2,7 +2,7 @@ import importlib
 import json
 
 import numpy as np
-import rrr
+import thrl
 
 """
     Algorithm Helpers of thrl.
@@ -45,5 +45,5 @@ def entropy_coeff(update_step, start, end, anneal_updates):
 
 
 def train():
-    name = json.loads(rrr.runtime_config_json())["runtime"]["algorithm"]
+    name = json.loads(thrl.runtime_config_json())["runtime"]["algorithm"]
     importlib.import_module(f".{name}", __package__).train()
