@@ -7,6 +7,6 @@ description = "Map viewer for thrl project"
 repository = "https://codeberg.org/thrl/thrl"
 
 [dependencies]
-thrl = { path = "..", default-features = false }
+thrl = { version = "0.2.2", path = "..", default-features = false }
 eframe = { version = "0.36.2", default-features = false, features = ["default_fonts", "glow", "x11", "wayland"] }
 rfd = "0.17.2"
