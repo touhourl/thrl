@@ -1,7 +1,7 @@
 use super::frame::Frame;
 
 /*
-    Reward algorithm of rrr.
+    Reward algorithm of thrl.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify

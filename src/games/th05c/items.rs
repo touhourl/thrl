@@ -5,7 +5,7 @@
 //! Deleted that unnecersary check
 
 /*
-    TH05 Item Discovery of rrr.
+    TH05 Item Discovery of thrl.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify

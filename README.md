@@ -84,9 +84,9 @@ The donated costs will be used with experiment costs and cloud compute costs.
 
 # Experiment
 
-I will put it temporary in readme. I do not have enough compute power, so it is unknown.
+I do not have enough compute power, so it is unknown.
 
-In someone's RL debugging suggestions (if I am correct it is a video), I can be sure:
+I can be sure:
 
 1. Reward algorithm is not a problem.
 2. This isn't a simulator.
@@ -94,7 +94,7 @@ In someone's RL debugging suggestions (if I am correct it is a video), I can be 
 
 I cannot be sure, algorithm does not have any problems, because this project is not peer-reviewed.
 
-It could not run at any big tech cloud computes at free tier, as I tested. 
+It could not run at any big tech cloud computes at free tier as I tested. 
 
 # Special thanks
 

@@ -2471,10 +2471,12 @@ dependencies = [
 
 [[package]]
 name = "thmp"
-version = "0.1.0"
+version = "0.2.2"
 dependencies = [
  "eframe",
  "rfd",
+ "serde",
+ "serde_json",
  "thrl",
 ]
 

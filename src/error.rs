@@ -4,7 +4,7 @@
 //! Also not changed, other than added a other error
 
 /*
-    Error handling of RL-rs, rrr.
+    Error handling of RL-rs, thrl.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify

@@ -11,7 +11,7 @@ pub mod param;
 pub mod worker;
 
 /*
-    Rust-Python Bindings of rrr.
+    Rust-Python Bindings of thrl.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify
@@ -28,6 +28,8 @@ pub mod worker;
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
+#[cfg(not(all(target_os = "linux", target_env = "gnu")))]
+compile_error!("We only supports GNU/Linux.");
 use pyo3::prelude::*;
 
 #[pyfunction]
@@ -50,7 +52,7 @@ fn environment_spec_json() -> PyResult<String> {
 }
 
 #[pymodule]
-fn rrr(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn thrl(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<crate::worker::Collector>()?;
     m.add_function(wrap_pyfunction!(init_logging, m)?)?;
     m.add_function(wrap_pyfunction!(runtime_config_json, m)?)?;

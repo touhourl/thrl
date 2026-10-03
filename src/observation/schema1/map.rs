@@ -16,7 +16,7 @@
 //! [paper]
 
 /*
-    Map layout of rrr.
+    Map layout of thrl.
     Egocentric Map of RL-rs.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 

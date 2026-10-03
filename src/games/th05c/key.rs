@@ -10,7 +10,7 @@
 //! By the way, we don't have any dialogs !!!
 
 /*
-    TH05 keyboard control of rrr.
+    TH05 keyboard control of thrl.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify

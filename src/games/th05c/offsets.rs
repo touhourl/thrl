@@ -1,7 +1,7 @@
 pub struct TH05COffsets;
 
 /*
-    Offsets of TH05 of rrr.
+    Offsets of TH05 of thrl.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify

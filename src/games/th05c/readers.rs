@@ -13,7 +13,7 @@
 //! So I just use unsafe here. Th05 has more data to do than th04.
 
 /*
-    TH05 memory reader of rrr.
+    TH05 memory reader of thrl.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify

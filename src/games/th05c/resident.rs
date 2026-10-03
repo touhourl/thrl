@@ -9,7 +9,7 @@ const MAIN_STAGE_COUNT: usize = 6;
 const _STAGE_EXTRA: usize = MAIN_STAGE_COUNT;
 
 /*
-    TH05 Resident structure finder of rrr.
+    TH05 Resident structure finder of thrl.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify

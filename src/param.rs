@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use std::sync::OnceLock;
 
 /*
-    Parameter constants of RL-rs, rrr, thrl.
+    Parameter constants of RL-rs, thrl.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify
@@ -52,6 +52,7 @@ pub struct RuntimeSettings {
 pub struct PathSettings {
     // === PATH === #
     pub log_dir: String,
+    pub export_dir: PathBuf,
     pub curriculum_file: String,
     pub curriculum_state_file: String,
 }
@@ -106,6 +107,19 @@ impl RuntimeConfig {
         let mut cfg: Self = toml::from_str(&text)
             .map_err(|e| format!("Failed to parse {}: {e}", path.display()))?;
         cfg.raw = raw;
+        if cfg.paths.export_dir.is_relative() {
+            let config_path = if path.is_absolute() {
+                path.clone()
+            } else {
+                std::env::current_dir()
+                    .map_err(|e| e.to_string())?
+                    .join(&path)
+            };
+            let base = config_path
+                .parent()
+                .unwrap_or_else(|| std::path::Path::new("."));
+            cfg.paths.export_dir = base.join(&cfg.paths.export_dir);
+        }
         std::fs::create_dir_all(&cfg.paths.log_dir).map_err(|e| e.to_string())?;
         Ok(cfg)
     }

@@ -15,7 +15,7 @@ pub use reward::*;
 pub use state::*;
 
 /*
-    Schema module of rrr.
+    Schema module of thrl.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify

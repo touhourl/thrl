@@ -2,7 +2,7 @@ use super::frame::Frame;
 use serde::{Deserialize, Serialize};
 
 /*
-    Boss features of rrr, RL-rs.
+    Boss features of thrl, RL-rs.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify

@@ -24,7 +24,7 @@
 //! works but lemme donau the MORL farst...
 
 /*
-    Curriculum Algorithms of rrr.
+    Curriculum Algorithms of thrl.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify
@@ -235,7 +235,7 @@ pub fn write_cfg_json(path: &Path, cfg_json: &str) {
 }
 
 pub fn write_runtime_cfg(cfg: &crate::param::RuntimeConfig, cfg_json: &str) {
-    let dir = Path::new(cfg.raw["paths"]["export_dir"].as_str().unwrap());
+    let dir = &cfg.paths.export_dir;
     std::fs::create_dir_all(dir).unwrap();
     let path = dir.join(cfg.raw["paths"]["cfg_file"].as_str().unwrap());
     write_cfg_json(&path, cfg_json);

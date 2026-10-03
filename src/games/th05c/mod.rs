@@ -21,7 +21,7 @@ use crate::memory::ProcessMemory;
 use offsets::*;
 
 /*
-    Memory finder of TH05 of rrr.
+    Memory finder of TH05 of thrl.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify

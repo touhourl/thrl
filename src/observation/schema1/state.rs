@@ -2,7 +2,7 @@ use super::frame::Frame;
 use serde::{Deserialize, Serialize};
 
 /*
-    State features of rrr.
+    State features of thrl.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify

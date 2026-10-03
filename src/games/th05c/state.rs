@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /*
-    TH05 types and structures of rrr.
+    TH05 types and structures of thrl.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify

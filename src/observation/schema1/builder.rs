@@ -117,13 +117,8 @@ impl ObservationBuilder {
         );
 
         // Entity-level features: top-16 nearest projectiles as direct MLP input
-        let projectile_entities = extract_projectile_entities(
-            &state.projectiles,
-            px,
-            py,
-            self.span_x_px,
-            self.span_y_px,
-        );
+        let projectile_entities =
+            extract_projectile_entities(&state.projectiles, px, py, self.span_x_px, self.span_y_px);
 
         // Top-16 nearest bullets as direct MLP input
         let bullet_entities = extract_bullet_entities(state, self.span_x_px, self.span_y_px);
