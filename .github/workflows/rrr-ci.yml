@@ -33,6 +33,9 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Strip deps
+        run: perl -0pi -e 's/^\s*dependencies\s*=\s*\[.*?^\s*\]\s*\n//ms' pyproject.toml
+
       - name: Build wheels
         uses: PyO3/maturin-action@v1
         with:

@@ -1,7 +1,7 @@
 # thrl - A Touhou Reinforcement Learning Framework
 Cite the **paper** as following:
 ```
-@article{Liu_A_High-Fidelity_Reinforcement_2026,
+@article{liu2026highfidelity,
     author = {Liu, T.},
     doi = {10.5281/zenodo.21788472},
     title = {{A High-Fidelity Reinforcement Learning Environment and Baseline for Multi-Objective Bullet Hell Games}},
@@ -16,7 +16,8 @@ th98patch (patch for Mystic Square and Lotus Land Story): [https://codeberg.org/
 thrl: [https://codeberg.org/thrl/thrl](https://codeberg.org/thrl/thrl)
 
 # Requirements
-Currently, only GNU/Linux is supported. I do not have the enough time to do for Windows. You can try WSL2, but I won't promise that works.
+
+Only GNU/Linux is supported. WSL2 is okay.
 
 You must have a GPU. Supported GPU in this repo are [XPU](https://pytorch.org/get-started/additional-platforms/) and [CUDA](https://pytorch.org/).
 
@@ -76,57 +77,26 @@ make docs
 
 # Donating
 
-But if you really has money, donate to 0x0Ec67fa7d7Fbe849D481F32ee24CCecE901B3F55 at Ethereum with ETH/USDT/USDC or 
+Donate to 0x0Ec67fa7d7Fbe849D481F32ee24CCecE901B3F55 at Ethereum with ETH/USDT/USDC or 
 Arbitrum One with ETH.
-Donation will be processed via cryptocurrencies instead of any other ways (I am too lazy to set it up).
+Donation will be processed via cryptocurrencies instead of any other ways. 
+The donated costs will be used with experiment costs and cloud compute costs.
 
-# Why not crowdfunding?
+# Experiment
 
-Yes, I want credit and money. But, this project is not as same as ReC98. It needs public contributions, advanced knowledge 
-in reinforcement learning and scientific researches, and I believe you can do better than me.
-
-# How can it converge?
-
-I will put it temporary in readme. During my first experiment, a TH04 experiment (source code is already deleted) which I used only
-Top-K things and standard PPO approach, had a good result. The agent went further to stage 2 (idx 1) and fought with boss. 
-The training lasted about 3 days (total time of computing, and splitted to 20 days) and had to stop 
-because of emergency shutdown. It went really slow (~ 3 min per episode  because of original executable, 
-entirely CPU, and /dev/input instead of memory writes), so it was not efficient.
-With the current implementation status, I bet someone with a good hardware can run it. 
-
-Entropy goes down, but it cannot fully beat stage 3 (idx 2) in game with 3 lives and 3 bombs. But in my opinion, it is only a time issue.
+I will put it temporary in readme. I do not have enough compute power, so it is unknown.
 
 In someone's RL debugging suggestions (if I am correct it is a video), I can be sure:
 
 1. Reward algorithm is not a problem.
 2. This isn't a simulator.
+3. I do not enough money to train it.
 
-I cannot be sure:
+I cannot be sure, algorithm does not have any problems, because this project is not peer-reviewed.
 
-1. Algorithm does not have any problems, because this project is not peer-reviewed
-2. I have enough power to train it.
+It could not run at any big tech cloud computes at free tier, as I tested. 
 
-So what is XPU? Well, I have only an "Intel Corporation Meteor Lake-P \[Intel Arc Graphics\]", that is integrated. So, you see well the speed.
-What is integrated? It shares memory with sys memory and is very slow. As a small model (e.g. llama-2-7b.Q4_K_M.gguf), it runs at 2 tok/s.
-A MOPPO update (2048 steps) in this repo, it spends 18-36 seconds. 
-So you see why I am complaining it all the time.
+# Special thanks
 
-# Roadmap
-
-I will also develop it further, adding more games. 3 Games are already in planing and one of them has been written the draft. 
-TH04 is one of it and will be delivered as soon as I understood the TH04's CustomEntity. I love all musics in PC-98 era.
-
-Original README:
----
-We Reinforcement Learning.
-We Reverse Engineering.
-We Rust.
-
-The RL agent for Bullet Hell Games.
-
-Written by a person in 6 months, only one person. Doing it every day.
-
-Thanks ReC98 for detailed reverse engineered code and blogs, StableBaseline3 for some implementations in Python, PyTorch for Intel/CUDA acceleration,
+ReC98 for detailed reverse engineered code and blogs, StableBaseline3 for some implementations in Python, PyTorch for Intel/CUDA acceleration,
 GNU Project for license and OS, Professor Donald E. Knuth for TeX, arxiv.org for fantastic papers (though I hate it also), Institute of Electrical and Electronics Engineers for some papers.
-
-Without them, such a project is never possible.
