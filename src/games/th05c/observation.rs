@@ -374,6 +374,5 @@ fn schema1(state: th05::GameState) -> s1::Frame {
 pub fn frame(schema: Schema, state: th05::GameState) -> Result<ObservationFrame, String> {
     match schema {
         Schema::Schema1 => Ok(ObservationFrame::Schema1(schema1(state))),
-        Schema::Schema0 => todo!(),
     }
 }
