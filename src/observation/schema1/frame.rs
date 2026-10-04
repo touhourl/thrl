@@ -27,6 +27,7 @@ pub struct Motion {
 pub struct Entity {
     pub motion: Motion,
     pub type_id: f32,
+    pub hitbox: f32,
 }
 
 #[derive(Clone, Copy, Default)]

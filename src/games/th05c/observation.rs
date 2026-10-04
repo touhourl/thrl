@@ -12,17 +12,18 @@ fn motion(pos: th05::PlayfieldMotion) -> s1::Motion {
 }
 
 #[inline]
-fn entity(pos: th05::PlayfieldMotion, type_id: f32) -> s1::Entity {
+fn entity(pos: th05::PlayfieldMotion, type_id: f32, hitbox: f32) -> s1::Entity {
     s1::Entity {
         motion: motion(pos),
         type_id,
+        hitbox,
     }
 }
 
 #[inline]
-fn boss(value: th05::Boss, type_id: f32) -> s1::Boss {
+fn boss(value: th05::Boss, type_id: f32, hitbox: f32) -> s1::Boss {
     s1::Boss {
-        entity: entity(value.pos, type_id),
+        entity: entity(value.pos, type_id, hitbox),
         hp: value.hp,
     }
 }
@@ -175,14 +176,10 @@ fn projectiles(
             });
         }
 
-        let num_samples = beam_length.ceil() as i32 + 1;
+        let num_samples = (beam_length / 16.0).ceil() as i32 + 1;
+        let direction = (end_dist - start_dist).signum();
         for i in 0..num_samples {
-            let t = if num_samples > 1 {
-                i as f32 / (num_samples - 1) as f32
-            } else {
-                0.5
-            };
-            let dist_along = start_dist + t * (end_dist - start_dist);
+            let dist_along = start_dist + (i as f32 * 16.0).min(beam_length) * direction;
             projectile_map.push(s1::Entity {
                 motion: s1::Motion {
                     x: origin_x + cos_a * dist_along,
@@ -191,6 +188,7 @@ fn projectiles(
                     vy: 0.0,
                 },
                 type_id: (laser.flag as f32 / 7.0) * 0.25, // 0.0..0.25 range
+                hitbox: 12.0,
             });
         }
     }
@@ -217,6 +215,7 @@ fn projectiles(
                     vy: 0.0,
                 },
                 type_id: 0.25 + if is_right { 0.125 } else { 0.0 }, // 0.25..0.50
+                hitbox: 0.0,
             });
         }
     }
@@ -225,7 +224,7 @@ fn projectiles(
     // Cheeto trails: category type_id base = 0.50..0.75
     for trail in cheeto_trails {
         let mut prev: Option<(f32, f32)> = None;
-        for node_i in (1..16).step_by(2).rev() {
+        for node_i in (0..16).rev() {
             let x = trail.node_pos[node_i].x as f32 / 16.0;
             let y = trail.node_pos[node_i].y as f32 / 16.0;
             projectiles.push(s1::Projectile {
@@ -241,9 +240,8 @@ fn projectiles(
             if let Some((prev_x, prev_y)) = prev {
                 let dx = x - prev_x;
                 let dy = y - prev_y;
-                let distance = (dx * dx + dy * dy).sqrt();
                 // FIX: There is no gap to excape, agent.
-                let steps = distance.ceil().max(1.0) as usize;
+                let steps = 1;
                 for s in 1..=steps {
                     let t = s as f32 / steps as f32;
                     projectile_map.push(s1::Entity {
@@ -254,6 +252,7 @@ fn projectiles(
                             vy: 0.0,
                         },
                         type_id: 0.50 + (trail.flag as f32 / 2.0) * 0.25,
+                        hitbox: 12.0,
                     });
                 }
             } else {
@@ -266,6 +265,7 @@ fn projectiles(
                         vy: 0.0,
                     },
                     type_id: 0.50 + (trail.flag as f32 / 2.0) * 0.25,
+                    hitbox: 12.0,
                 });
             }
 
@@ -286,6 +286,7 @@ fn projectiles(
         projectile_map.push(s1::Entity {
             motion,
             type_id: 0.75 + sub * 0.25,
+            hitbox: 16.0,
         });
     }
 
@@ -332,21 +333,28 @@ fn schema1(state: th05::GameState) -> s1::Frame {
         bullets: bullets
             .into_iter()
             .filter(th05::Bullet::is_active)
-            .map(|b| entity(b.pos, (b.patnum.unsigned_abs() % 256) as f32 / 255.0))
+            .map(|b| entity(b.pos, (b.patnum.unsigned_abs() % 256) as f32 / 255.0, 8.0))
             .collect(),
         enemies: enemies
             .into_iter()
             .filter(th05::Enemy::is_active)
-            .map(|e| entity(e.pos, e.subtype as f32 / 255.0))
+            .map(|e| {
+                let hitbox = if e.kills_player_on_collision != 0 {
+                    24.0
+                } else {
+                    0.0
+                };
+                entity(e.pos, e.subtype as f32 / 255.0, hitbox)
+            })
             .collect(),
         items: items
             .into_iter()
             .filter(th05::Item::is_active)
-            .map(|i| entity(i.pos, i.item_type as f32 / 6.0))
+            .map(|i| entity(i.pos, i.item_type as f32 / 6.0, 0.0))
             .collect(),
-        boss: main_boss.map(|b| boss(b, 0.0)),
-        boss_2: boss_2.map(|b| boss(b, 1.0 / 3.0)),
-        midboss: midboss.map(|b| boss(b, 2.0 / 3.0)),
+        boss: main_boss.map(|b| boss(b, 0.0, 32.0)),
+        boss_2: boss_2.map(|b| boss(b, 1.0 / 3.0, 0.0)),
+        midboss: midboss.map(|b| boss(b, 2.0 / 3.0, 0.0)),
         projectiles,
         projectile_map,
         state: s1::State {
@@ -366,5 +374,6 @@ fn schema1(state: th05::GameState) -> s1::Frame {
 pub fn frame(schema: Schema, state: th05::GameState) -> Result<ObservationFrame, String> {
     match schema {
         Schema::Schema1 => Ok(ObservationFrame::Schema1(schema1(state))),
+        Schema::Schema0 => todo!(),
     }
 }

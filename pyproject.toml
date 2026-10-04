@@ -9,7 +9,7 @@ module-name = "thrl"
 
 [project]
 name = "thrl-rs"
-version = "0.2.2"
+version = "0.2.3"
 description = "Touhou Reinforcement Learning Framework"
 requires-python = ">=3.13"
 dependencies = [

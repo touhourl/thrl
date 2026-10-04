@@ -52,6 +52,9 @@ fn egocentric_map_config() -> Option<(f32, f32)> {
 pub trait GridEntity {
     fn get_pixel_pos(&self) -> (f32, f32);
     fn get_pixel_velocity(&self) -> (f32, f32);
+    fn get_hitbox_size(&self) -> f32 {
+        0.0
+    }
     fn get_type_id(&self) -> f32 {
         0.0 // unused
     }
@@ -115,6 +118,16 @@ impl SpatialMap {
         let (projection_span_x_px, projection_span_y_px) =
             egocentric_map.unwrap_or((span_x_px, span_y_px));
         let max_dist = (projection_span_x_px.powi(2) + projection_span_y_px.powi(2)).sqrt();
+        let cell_w = if egocentric_map.is_some() {
+            projection_span_x_px * 2.0
+        } else {
+            span_x_px
+        } / grid_w as f32;
+        let cell_h = if egocentric_map.is_some() {
+            projection_span_y_px * 2.0
+        } else {
+            span_y_px
+        } / grid_h as f32;
         let mut active_in_span = 0usize;
 
         // Note: we can't get player position here anymore.
@@ -149,16 +162,39 @@ impl SpatialMap {
             };
             let gx = gx.min(grid_w - 1);
             let gy = gy.min(grid_h - 1);
-            let i = gy * grid_w + gx;
-
-            count[i] += edge_weight;
+            let half = entity.get_hitbox_size() * 0.5;
+            let (gx0, gx1, gy0, gy1) = if half > 0.0 {
+                let (x, y) = if egocentric_map.is_some() {
+                    (dx + projection_span_x_px, dy + projection_span_y_px)
+                } else {
+                    (ex, ey)
+                };
+                (
+                    (((x - half) / cell_w).floor() as isize).clamp(0, grid_w as isize - 1) as usize,
+                    (((x + half) / cell_w).ceil() as isize - 1).clamp(0, grid_w as isize - 1)
+                        as usize,
+                    (((y - half) / cell_h).floor() as isize).clamp(0, grid_h as isize - 1) as usize,
+                    (((y + half) / cell_h).ceil() as isize - 1).clamp(0, grid_h as isize - 1)
+                        as usize,
+                )
+            } else {
+                (gx, gx, gy, gy)
+            };
             let (vx, vy) = entity.get_pixel_velocity();
-            vx_acc[i] += vx * edge_weight;
-            vy_acc[i] += vy * edge_weight;
-            type_acc[i] += entity.get_type_id() * edge_weight;
-
-            let dist = (dx * dx + dy * dy).sqrt();
-            closest[i] = closest[i].min((dist / max_dist).min(1.0));
+            let type_id = entity.get_type_id();
+            let dist_x = (dx.abs() - half).max(0.0);
+            let dist_y = (dy.abs() - half).max(0.0);
+            let dist = (dist_x * dist_x + dist_y * dist_y).sqrt();
+            for gy in gy0..=gy1 {
+                for gx in gx0..=gx1 {
+                    let i = gy * grid_w + gx;
+                    count[i] += edge_weight;
+                    vx_acc[i] += vx * edge_weight;
+                    vy_acc[i] += vy * edge_weight;
+                    type_acc[i] += type_id * edge_weight;
+                    closest[i] = closest[i].min((dist / max_dist).min(1.0));
+                }
+            }
 
             if inside {
                 active_in_span += 1;
@@ -174,17 +210,6 @@ impl SpatialMap {
         let mut player_dist = vec![0.0f32; size];
 
         // Calculate player distance for each cell
-        let cell_w = if egocentric_map.is_some() {
-            projection_span_x_px * 2.0 / grid_w as f32
-        } else {
-            span_x_px / grid_w as f32
-        };
-        let cell_h = if egocentric_map.is_some() {
-            projection_span_y_px * 2.0 / grid_h as f32
-        } else {
-            span_y_px / grid_h as f32
-        };
-
         for gy in 0..grid_h {
             for gx in 0..grid_w {
                 let i = gy * grid_w + gx;
@@ -336,6 +361,10 @@ impl GridEntity for Entity {
 
     fn get_pixel_velocity(&self) -> (f32, f32) {
         (self.motion.vx, self.motion.vy)
+    }
+
+    fn get_hitbox_size(&self) -> f32 {
+        self.hitbox
     }
 
     fn get_type_id(&self) -> f32 {

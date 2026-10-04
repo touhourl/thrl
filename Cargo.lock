@@ -2471,7 +2471,7 @@ dependencies = [
 
 [[package]]
 name = "thmp"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "eframe",
  "rfd",
@@ -2491,7 +2491,7 @@ dependencies = [
 
 [[package]]
 name = "thrl"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "csv",
  "evdev",
