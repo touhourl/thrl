@@ -44,6 +44,6 @@ def entropy_coeff(update_step, start, end, anneal_updates):
     return start + t * (end - start)
 
 
-def train():
+def train(eval_mode=False):
     name = json.loads(thrl.runtime_config_json())["runtime"]["algorithm"]
-    importlib.import_module(f".{name}", __package__).train()
+    importlib.import_module(f".{name}", __package__).train(eval_mode=eval_mode)

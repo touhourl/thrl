@@ -1,11 +1,13 @@
 pub mod frame;
+pub mod schema0;
 pub mod schema1;
 
+use crate::param::RuntimeConfig;
 pub use frame::Frame;
 use std::sync::Arc;
 
 /*
-    Observations of rrr.
+    Observations of thrl.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify
@@ -36,6 +38,7 @@ pub struct SchemaSpec {
 
 #[derive(Clone, Copy)]
 pub enum Schema {
+    Schema0,
     Schema1,
 }
 
@@ -44,23 +47,34 @@ impl TryFrom<usize> for Schema {
 
     fn try_from(value: usize) -> Result<Self, Self::Error> {
         match value {
+            0 => Ok(Self::Schema0),
             1 => Ok(Self::Schema1),
             _ => Err(format!("Unsupported observation schema: {value}")),
         }
     }
 }
 
-pub fn spec(schema: usize) -> Result<SchemaSpec, String> {
-    match Schema::try_from(schema)? {
+pub fn spec(cfg: &RuntimeConfig) -> Result<SchemaSpec, String> {
+    match Schema::try_from(cfg.runtime.schema)? {
+        Schema::Schema0 => Ok(schema0::spec(cfg)),
         Schema::Schema1 => Ok(schema1::spec()),
     }
 }
 
-pub fn encode(prev: Option<&Frame>, frame: &mut Frame) -> Result<EncodedState, String> {
+pub fn encode(
+    cfg: &RuntimeConfig,
+    prev: Option<&Frame>,
+    frame: &mut Frame,
+) -> Result<EncodedState, String> {
     match (prev, frame) {
+        (None, Frame::Schema0(frame)) => Ok(schema0::encode::encode(cfg, None, frame)),
+        (Some(Frame::Schema0(prev)), Frame::Schema0(frame)) => {
+            Ok(schema0::encode::encode(cfg, Some(prev), frame))
+        }
         (None, Frame::Schema1(frame)) => Ok(schema1::encode(None, frame)),
         (Some(Frame::Schema1(prev)), Frame::Schema1(frame)) => {
             Ok(schema1::encode(Some(prev), frame))
         }
+        _ => Err("Observation schema changed between frames".to_string()),
     }
 }

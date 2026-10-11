@@ -2,7 +2,6 @@
 use super::frame::Frame;
 use super::{
     BossFeatures,
-    BossMap,
     BulletFeature,
     BulletMap,
     DropFeatures,
@@ -108,14 +107,6 @@ impl ObservationBuilder {
             self.span_y_px,
         );
 
-        let boss_map = BossMap::from_game_state_bosses(
-            state,
-            self.grid_w,
-            self.grid_h,
-            self.span_x_px,
-            self.span_y_px,
-        );
-
         // Entity-level features: top-16 nearest projectiles as direct MLP input
         let projectile_entities =
             extract_projectile_entities(&state.projectiles, px, py, self.span_x_px, self.span_y_px);
@@ -133,7 +124,6 @@ impl ObservationBuilder {
             bullet_map,
             enemy_map,
             projectile_map,
-            boss_map,
             projectile_entities,
             bullet_entities,
             drop_features,
@@ -159,7 +149,6 @@ pub struct Observation {
     pub bullet_map: BulletMap,
     pub enemy_map: EnemyMap,
     pub projectile_map: ProjectileMap,
-    pub boss_map: BossMap,
     #[serde(skip)]
     pub projectile_entities: Vec<f32>,
     #[serde(skip)]
@@ -193,22 +182,23 @@ impl Observation {
         vec
     }
 
-    /// Spatial maps: bullet + enemy + projectile(merged) + boss = 4 maps * 6 channels = 24 channels
+    /// Spatial maps: 4 maps * 5 entity channels + 1 shared player-distance channel = 21 channels
     pub fn to_map_tensor(&self) -> Vec<f32> {
         let mut vec = Vec::with_capacity(
             self.bullet_map.grid_w * self.bullet_map.grid_h * Self::map_channel_count(),
         );
-        vec.extend(self.bullet_map.to_flattened());
-        vec.extend(self.enemy_map.to_flattened());
-        vec.extend(self.projectile_map.to_flattened());
-        vec.extend(self.boss_map.to_flattened());
+        vec.extend(self.bullet_map.to_model_flattened());
+        vec.extend(self.enemy_map.to_model_flattened());
+        vec.extend(self.projectile_map.to_model_flattened());
+        // wanna it also use for the cross train of ego - nonego.
+        vec.extend(&self.bullet_map.player_dist);
         vec
     }
 
     pub fn feature_count(grid_w: usize, grid_h: usize) -> usize {
         let map_size = grid_w * grid_h;
 
-        Self::feature_only_count() + map_size * 6 * Self::MAP_COUNT
+        Self::feature_only_count() + map_size * Self::map_channel_count()
     }
 
     // 273?
@@ -221,11 +211,11 @@ impl Observation {
             + DropFeatures::TOTAL_FEATURES
     }
 
-    /// 4 maps * 6 channels = 24
+    /// 4 maps * 5 entity channels + 1 shared = 21
     pub const fn map_channel_count() -> usize {
-        Self::MAP_COUNT * 6
+        Self::MAP_COUNT * 5 + 1
     }
 
     /// Number of spatial maps: bullet, enemy, projectile(merged), boss
-    const MAP_COUNT: usize = 4;
+    const MAP_COUNT: usize = 3;
 }

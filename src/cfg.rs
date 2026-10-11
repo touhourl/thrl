@@ -1,7 +1,7 @@
 use crate::param::RuntimeConfig;
 use serde_json::Value;
 /*
-    General CC configuration of rrr.
+    General CC configuration of thrl.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify
@@ -34,20 +34,28 @@ pub fn execute_cc_json(
         return current_json.unwrap().to_string();
     };
     match game {
+        "taisei" => crate::observation::schema0::cfg::execute_cc_instruction(value, current_json),
         "th05c" => crate::games::th05c::cfg::execute_cc_instruction(value, current_json),
+        "th04a" => crate::games::th04a::cfg::execute_cc_instruction(value, current_json),
         _ => unreachable!(),
     }
 }
 
 pub fn write_cfg_json(cfg: &RuntimeConfig, cfg_json: &str) {
     match cfg.runtime.game.as_str() {
+        "taisei" => crate::observation::schema0::cfg::write_runtime_cfg(cfg, cfg_json),
         "th05c" => crate::games::th05c::cfg::write_runtime_cfg(cfg, cfg_json),
+        "th04a" => crate::games::th04a::cfg::write_runtime_cfg(cfg, cfg_json),
         _ => unreachable!(),
     }
 }
 
 pub fn debug_cfg_json(game: &str, cfg_json: &str) -> String {
     match game {
+        "taisei" => crate::observation::schema0::cfg::debug_cfg_json(cfg_json),
+        "th04a" => serde_json::from_str::<crate::games::th04a::cfg::Cfg04a>(cfg_json)
+            .unwrap()
+            .debug_str(),
         "th05c" => serde_json::from_str::<crate::games::th05c::cfg::Cfg05>(cfg_json)
             .unwrap()
             .debug_str(),

@@ -1,10 +1,11 @@
 pub mod common;
+pub mod th04a;
 //pub mod th04;
 pub mod th05c;
 pub mod th05d;
 
 /*
-    ENV of rrr.
+    ENV of thrl.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify
@@ -38,7 +39,7 @@ pub mod th05d;
 //    }
 //}
 
-use crate::observation::EncodedState;
+use crate::observation::{Frame, Schema};
 use crate::param::RuntimeConfig;
 use std::time::Duration;
 
@@ -50,35 +51,63 @@ pub struct EnvSpec {
 }
 
 pub trait Environment: Send {
-    fn initial_state(&mut self) -> Result<Option<EncodedState>, String>;
-    fn step(
-        &mut self,
-        action: usize,
-        frame_elapsed: Duration,
-    ) -> Result<Option<EncodedState>, String>;
-    fn reset(&mut self) -> Result<Option<EncodedState>, String>;
+    fn initial_state(&mut self) -> Result<Option<Frame>, String>;
+    fn step(&mut self, action: usize, frame_elapsed: Duration) -> Result<Option<Frame>, String>;
+    fn reset(&mut self) -> Result<Option<Frame>, String>;
     fn human_action(&mut self) -> Result<Option<usize>, String> {
         Ok(None)
     }
 }
 
 pub fn spec(cfg: &RuntimeConfig) -> Result<EnvSpec, String> {
-    match cfg.runtime.game.as_str() {
-        "th05c" => {
-            let schema = crate::observation::spec(cfg.runtime.schema)?;
+    match Schema::try_from(cfg.runtime.schema)? {
+        Schema::Schema0 => {
+            if cfg.runtime.game != "taisei" {
+                return Err(format!(
+                    "schema0 requires taisei, got {}",
+                    cfg.runtime.game.as_str()
+                ));
+            }
+            let schema = crate::observation::spec(cfg)?;
             Ok(EnvSpec {
                 observations: schema.observations,
-                actions: th05c::key::DiscreteAction::size(),
+                actions: crate::observation::schema0::ACTION_COUNT,
                 rewards: schema.rewards,
             })
         }
-        game => Err(format!("Unsupported game worker: {game}")),
+        Schema::Schema1 => match cfg.runtime.game.as_str() {
+            "th04a" | "th05c" => {
+                let schema = crate::observation::spec(cfg)?;
+                Ok(EnvSpec {
+                    observations: schema.observations,
+                    actions: th05c::key::DiscreteAction::size(),
+                    rewards: schema.rewards,
+                })
+            }
+            game => Err(format!("Unsupported game worker: {game}")),
+        },
     }
 }
 
 pub fn spawn(cfg: &RuntimeConfig) -> Result<Box<dyn Environment>, String> {
-    match cfg.runtime.game.as_str() {
-        "th05c" => Ok(Box::new(th05c::watcher::TH05CSession::spawn(cfg)?)),
-        game => Err(format!("Unsupported game worker: {game}")),
+    match Schema::try_from(cfg.runtime.schema)? {
+        Schema::Schema0 => {
+            if cfg.runtime.game != "taisei" {
+                return Err(format!(
+                    "schema0 requires taisei, got {}",
+                    cfg.runtime.game.as_str()
+                ));
+            }
+            {
+                Ok(Box::new(crate::observation::schema0::TaiseiSession::spawn(
+                    cfg,
+                )?))
+            }
+        }
+        Schema::Schema1 => match cfg.runtime.game.as_str() {
+            "th05c" => Ok(Box::new(th05c::watcher::TH05CSession::spawn(cfg)?)),
+            "th04a" => Ok(Box::new(th04a::TH04ASession::spawn(cfg)?)),
+            game => Err(format!("Unsupported game worker: {game}")),
+        },
     }
 }

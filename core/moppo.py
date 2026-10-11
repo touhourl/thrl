@@ -35,7 +35,7 @@ from .algorithms import compute_gae, entropy_coeff as get_entropy_coeff
 from .model import MOActorCritic
 
 
-def train() -> None:
+def train(eval_mode=False) -> None:
     """Main trainer (dummy docstring here)
 
     :raises ___ don't know, any errors
@@ -76,6 +76,7 @@ def train() -> None:
     HORIZON = training_cfg["horizon"]
     LOGIT_CLAMP = training_cfg["logit_clamp"]
     MAX_GRAD_NORM = training_cfg["max_grad_norm"]
+    CRITIC_SHARED_GRAD_SCALE = 0.1
     FEATURE_PROJECT_DIM = model_cfg["feature_project_dim"]
     CNN_EMBED_DIM = model_cfg["cnn_embed_dim"]
     CNN_POOL_OUT = tuple(model_cfg["cnn_pool_out"])
@@ -123,7 +124,7 @@ def train() -> None:
         cnn_hidden_channels=CNN_HIDDEN_CHANNELS,
         cnn_pool_out=CNN_POOL_OUT,
     ).to(DEVICE)
-    optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
+    optimizer = None if eval_mode else optim.Adam(model.parameters(), lr=LEARNING_RATE)
     # @misc{kingma2017adammethodstochasticoptimization,
     #       title={Adam: A Method for Stochastic Optimization},
     #       author={Diederik P. Kingma and Jimmy Ba},
@@ -149,7 +150,7 @@ def train() -> None:
         if RESET_OPTIMIZER_ON_RESUME:
             logging.warning("Resetting optimizer...")
             pass
-        else:
+        elif not eval_mode:
             optimizer.load_state_dict(ckpt["optimizer_state"])
             # Important if loading optimizer state across devices
             for state in optimizer.state.values():
@@ -189,6 +190,9 @@ def train() -> None:
                      )
 
     except Exception as e:
+        if eval_mode:
+            # bro you cannot run a null model with it. Might impl loading from /dev/null.
+            raise
         logging.warning(f"Checkpoint load failed: {e}. Starting fresh.")
 
     collector = thrl.Collector(
@@ -259,6 +263,8 @@ def train() -> None:
                     # primaryClass={cs.LG},
                     # url={https://arxiv.org/abs/2110.01515},
                     # }
+                    if eval_mode:
+                        actions = logits.argmax(dim=-1)
                     for i, forced_action in enumerate(forced_actions):
                         if forced_action is not None:
                             # Read the actual action taken by me.
@@ -282,6 +288,12 @@ def train() -> None:
 
     logging.info(f"Preparation Complete.")
 
+    while eval_mode:
+        if inference_errors:
+            raise RuntimeError("Inference worker failed") from inference_errors[0]
+        rollout = collector.next_rollout()
+        if rollout is None:
+            time.sleep(0.001)
     features_buf = torch.empty((HORIZON, FEATURE_DIM), dtype=torch.float32)
     maps_buf = torch.empty((HORIZON, MAP_CHANNELS, grid_h, grid_w), dtype=torch.float32)
     actions_buf = torch.empty(HORIZON, dtype=torch.int64)
@@ -477,7 +489,7 @@ def train() -> None:
                     # Forward & Clamp logits
                     b_h = s_hid[idx].unsqueeze(0)
                     logits, values_mo = model.forward_sequence(
-                        s_feat[idx], s_maps[idx], b_h, s_don[idx])
+                        s_feat[idx], s_maps[idx], b_h, s_don[idx], CRITIC_SHARED_GRAD_SCALE)
                     logits = torch.clamp(logits, -LOGIT_CLAMP, LOGIT_CLAMP)
 
                     # Flatten them all
@@ -501,7 +513,7 @@ def train() -> None:
                         vl_o = nn.MSELoss()(values_mo[:, o], b_ret[:, o])
                         vl_per_obj.append(vl_o)
 
-                    vl_total = sum(vl_per_obj)
+                    vl_total = torch.stack(vl_per_obj).mean()
                     loss = pl + VALUE_COEFF * vl_total
 
                     # typical update here, applies almost to all ML fields.
@@ -518,25 +530,22 @@ def train() -> None:
                     tot_loss += loss.item()
                     n_upd += 1
         else:
-            # Since the code are same, I might combine later? Or keep them but anyway no not necessary comments.
-            norm_advantages = torch.zeros_like(all_advantages)
-            for o in range(n_obj):
-                adv_o = all_advantages[:, o]
-                std = adv_o.std(unbiased=False)
-                if std > 1e-5:
-                    norm_advantages[:, o] = (adv_o - adv_o.mean()) / (std + 1e-8)
-                else:
-                    norm_advantages[:, o] = torch.zeros_like(adv_o)
-
             lam_val = torch.exp(log_lambda).item()
+            lam_val = 1.0 # Temp fix for decrease. The env should fixed.
             combined_advantages = (
-                    norm_advantages[:, 1]
-                    + norm_advantages[:, 2]
-                    + lam_val * norm_advantages[:, 0]
+                lam_val * all_advantages[:, 0]
+                + all_advantages[:, 1]
+                + all_advantages[:, 2]
             )
-            combined_advantages = (combined_advantages - combined_advantages.mean()) / \
-                                  (combined_advantages.std(unbiased=False) + 1e-8)
 
+            # only the final scalar policy advantage got nomed.
+            combined_std = combined_advantages.std(unbiased=False)
+            if combined_std > 1e-5:
+                combined_advantages = (
+                    combined_advantages - combined_advantages.mean()
+                ) / (combined_std + 1e-8)
+            else:
+                combined_advantages = torch.zeros_like(combined_advantages)
             # In a PDO algorithm for solving (\ref{cpolopt}), dual variables would be updated according to
             # %
             # \begin{equation}
@@ -563,6 +572,8 @@ def train() -> None:
                 num_seqs, SEQ_LEN).to(DEVICE)
             s_ret = all_returns[:H_trunc].reshape(
                 num_seqs, SEQ_LEN, n_obj).to(DEVICE)
+            s_old_val = values_buf[:H_trunc].reshape(
+                num_seqs, SEQ_LEN, n_obj).to(DEVICE)
             s_don = dones_buf[:H_trunc].reshape(
                 num_seqs, SEQ_LEN).to(DEVICE)
             s_hid = hidden_buf[:H_trunc:SEQ_LEN].to(DEVICE)
@@ -587,13 +598,14 @@ def train() -> None:
 
                     b_h = s_hid[idx].unsqueeze(0)
                     logits, values_mo = model.forward_sequence(
-                        s_feat[idx], s_maps[idx], b_h, s_don[idx])
+                        s_feat[idx], s_maps[idx], b_h, s_don[idx], CRITIC_SHARED_GRAD_SCALE)
                     logits = torch.clamp(logits, -LOGIT_CLAMP, LOGIT_CLAMP)
 
                     b_acts = s_acts[idx].reshape(-1)
                     b_olp = s_olp[idx].reshape(-1)
                     b_adv = s_adv[idx].reshape(-1)
                     b_ret = s_ret[idx].reshape(-1, n_obj)
+                    b_old_val = s_old_val[idx].reshape(-1, n_obj)
 
                     probs = torch.softmax(logits, dim=-1)
                     lp = torch.log(probs + 1e-10)
@@ -601,7 +613,9 @@ def train() -> None:
 
                     # This time not cross entropy because we are not doing SL. Standard PPO update
                     entropy = -(probs * lp).sum(dim=-1).mean()
-                    ratio = torch.exp(new_lp - b_olp)
+                    logratio = new_lp - b_olp
+                    ratio = torch.exp(logratio)
+                    approx_kl = ((ratio - 1.0) - logratio).mean()
                     s1 = ratio * b_adv
                     # Clamping of PPO.
                     s2 = torch.clamp(ratio, 1.0 - CLIP_EPSILON,
@@ -609,11 +623,19 @@ def train() -> None:
                     pl = -torch.min(s1, s2).mean()
 
                     vl_per_obj = []
+                    # I sware, ppo, stop discarding your good actions!
                     for o in range(n_obj):
-                        vl_o = nn.MSELoss()(values_mo[:, o], b_ret[:, o])
+                        value = values_mo[:, o]
+                        old_value = b_old_val[:, o]
+                        value_clipped = old_value + torch.clamp(
+                            value - old_value, -CLIP_EPSILON, CLIP_EPSILON)
+                        vl_o = torch.maximum(
+                            (value - b_ret[:, o]).pow(2),
+                            (value_clipped - b_ret[:, o]).pow(2),
+                        ).mean()
                         vl_per_obj.append(vl_o)
 
-                    vl_total = sum(vl_per_obj)
+                    vl_total = torch.stack(vl_per_obj).mean()
                     loss = pl + VALUE_COEFF * vl_total - entropy_coeff * entropy
 
                     optimizer.zero_grad()
@@ -625,7 +647,7 @@ def train() -> None:
                     for o in range(n_obj):
                         tot_vl[o] += vl_per_obj[o].item()
                     tot_ent += entropy.item()
-                    tot_kl += (b_olp - new_lp).mean().item()
+                    tot_kl += approx_kl.item()
                     tot_loss += loss.item()
                     n_upd += 1
 

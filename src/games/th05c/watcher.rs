@@ -1,16 +1,14 @@
+use super::key::{DiscreteAction, MoveAction, key_det_player_pos, shiftkey_player_pos};
+use super::readers::read_state;
+use super::{DynAddressFinder, GameState};
 use crate::games::Environment;
-use crate::games::th05c::key::{
-    DiscreteAction, MoveAction, key_det_player_pos, shiftkey_player_pos,
-};
-use crate::games::th05c::readers::*;
-use crate::games::th05c::{DynAddressFinder, GameState, PlayerState};
-use crate::observation::{EncodedState, Frame, Schema};
+use crate::observation::{Frame, Schema};
 use crate::param::RuntimeConfig;
 use std::io::ErrorKind;
 use std::time::{Duration, Instant};
 
 /*
-    TH05 memory wa2027  Tf rrr.
+    TH05 memory watcher of thrl.
     Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
     This program is free software: you can redistribute it and/or modify
@@ -72,93 +70,7 @@ impl TH05MemoryWatcher {
     }
 
     pub fn try_read_state(&mut self) -> Option<GameState> {
-        // get all addr
-        let resident_addr = self.finder.addresses().resident?;
-        let player_pos_addr = self.finder.addresses().player_pos?;
-        let bullets_addr = self.finder.addresses().bullets;
-        let enemies_addr = self.finder.addresses().enemies;
-        let items_addr = self.finder.addresses().items;
-        let boss_addr = self.finder.addresses().boss;
-        let boss_hp_addr = self.finder.addresses().boss_hp;
-        let boss_2_addr = self.finder.addresses().boss_2;
-        let boss_2_hp_addr = self.finder.addresses().boss_2_hp;
-        let midboss_addr = self.finder.addresses().midboss;
-        let midboss_hp_addr = self.finder.addresses().midboss_hp;
-        let stage_graze_addr = self.finder.addresses().stage_graze;
-
-        let mem = self.finder.memory();
-
-        let resident = resident_t(mem, resident_addr, Some(player_pos_addr)).ok()?;
-
-        let player_pos = playfield_motion(mem, player_pos_addr).ok()?;
-        let power = mem.read_u8(player_pos_addr + 0x1E).ok()?;
-        let invincibility_time = mem.read_u16_le(player_pos_addr + 0x1C).ok()?;
-
-        let player = PlayerState {
-            pos: player_pos,
-            power,
-            invincibility_time,
-            invincible_via_bomb: false,
-            miss_frame: 0,
-        };
-        // read all
-        let bullets = bullets_addr
-            .map(|addr| all_bullets(mem, addr))
-            .unwrap_or_default();
-        let enemies = enemies_addr
-            .map(|addr| all_enemies(mem, addr))
-            .unwrap_or_default();
-        let items = items_addr
-            .map(|addr| all_items(mem, addr))
-            .unwrap_or_default();
-
-        let boss_entity = boss_at(mem, boss_addr);
-        let boss_hp = boss_hp_addr.and_then(|addr| mem.read_i16_le(addr).ok());
-        let boss = normalize_boss_entity(mem, boss_entity, boss_addr, boss_hp);
-
-        let boss_2_entity = boss_at(mem, boss_2_addr);
-        let boss_2_hp = boss_2_hp_addr.and_then(|addr| mem.read_i16_le(addr).ok());
-        let boss_2 = normalize_boss_entity(mem, boss_2_entity, boss_2_addr, boss_2_hp);
-
-        let midboss = midboss(mem, midboss_addr, midboss_hp_addr);
-
-        let lasers_addr = (player_pos_addr as isize - 0x6E98) as usize;
-        let lasers = all_lasers(mem, lasers_addr);
-
-        let cheeto_addr = (player_pos_addr as isize - 0x4FE) as usize;
-        let cheeto_trails = all_cheeto_trails(mem, cheeto_addr);
-
-        let custom_addr = (player_pos_addr as isize - 0x1230) as usize;
-        let custom_entities = all_custom_entities(mem, custom_addr);
-
-        let firewave_addr = (player_pos_addr as isize - 0x48) as usize;
-        let firewaves = all_firewaves(mem, firewave_addr);
-
-        let stage_collection = stage_collection_state(
-            mem,
-            Some(player_pos_addr + 0x26),
-            Some(player_pos_addr + 0x23),
-            stage_graze_addr,
-            None,
-        );
-
-        let state = GameState {
-            resident,
-            player,
-            bullets,
-            enemies,
-            items,
-            boss,
-            boss_2,
-            midboss,
-            lasers,
-            cheeto_trails,
-            custom_entities,
-            firewaves,
-            stage_collection,
-        };
-
-        Some(state)
+        read_state(&mut self.finder)
     }
 
     pub fn apply_action(&mut self, action: usize) -> Result<(), Box<dyn std::error::Error>> {
@@ -218,7 +130,6 @@ pub struct TH05CSession {
     reconnect_attempts: usize,
     reconnect_sleep: Duration,
     schema: Schema,
-    last_state: Option<Frame>,
 }
 
 impl Drop for TH05CSession {
@@ -259,14 +170,11 @@ impl TH05CSession {
         self.inner.try_read_state()
     }
 
-    fn encoded_state(&mut self) -> Result<Option<EncodedState>, String> {
+    fn observation_frame(&mut self) -> Result<Option<Frame>, String> {
         let Some(state) = self.read_state() else {
             return Ok(None);
         };
-        let mut frame = crate::games::th05c::observation::frame(self.schema, state)?;
-        let encoded = crate::observation::encode(self.last_state.as_ref(), &mut frame)?;
-        self.last_state = Some(frame.history());
-        Ok(Some(encoded))
+        super::observation::frame(self.schema, state).map(Some)
     }
 
     /// Read the keys pressed by me.
@@ -382,9 +290,7 @@ impl TH05CSession {
 
         let worker: TH05WorkerSettings = cfg.raw["worker"].clone().try_into().unwrap();
         let schema = Schema::try_from(cfg.runtime.schema)?;
-        let export_dir = std::env::current_dir()
-            .map_err(|e| format!("Failed to get cwd: {}", e))?
-            .join(cfg.raw["paths"]["export_dir"].as_str().unwrap());
+        let export_dir = cfg.paths.export_dir.clone();
 
         let child = Command::new("dosbox-x")
             .args([
@@ -442,7 +348,6 @@ impl TH05CSession {
                             reconnect_attempts: worker.reconnect_attempts,
                             reconnect_sleep: Duration::from_millis(worker.reconnect_sleep_ms),
                             schema,
-                            last_state: None,
                         });
                     }
                     Err(e) => {
@@ -471,11 +376,10 @@ impl TH05CSession {
 }
 
 impl Environment for TH05CSession {
-    fn initial_state(&mut self) -> Result<Option<EncodedState>, String> {
-        self.last_state = None;
+    fn initial_state(&mut self) -> Result<Option<Frame>, String> {
         self.resume_game();
         for _ in 0..self.initial_state_attempts {
-            if let Some(state) = self.encoded_state()? {
+            if let Some(state) = self.observation_frame()? {
                 self.pause_game();
                 return Ok(Some(state));
             }
@@ -484,11 +388,7 @@ impl Environment for TH05CSession {
         Ok(None)
     }
 
-    fn step(
-        &mut self,
-        action: usize,
-        frame_elapsed: Duration,
-    ) -> Result<Option<EncodedState>, String> {
+    fn step(&mut self, action: usize, frame_elapsed: Duration) -> Result<Option<Frame>, String> {
         let remaining_budget = self.frame_interval.saturating_sub(frame_elapsed);
         let started = Instant::now();
         self.apply_action(action)?;
@@ -499,16 +399,15 @@ impl Environment for TH05CSession {
             std::thread::sleep(remaining.min(self.action_repeat_sleep));
         }
         self.pause_game();
-        self.encoded_state()
+        self.observation_frame()
     }
 
-    fn reset(&mut self) -> Result<Option<EncodedState>, String> {
+    fn reset(&mut self) -> Result<Option<Frame>, String> {
         self.release_action()?;
-        self.last_state = None;
         self.resume_game();
         std::thread::sleep(self.episode_cooldown);
         for _ in 0..self.reconnect_attempts {
-            if let Some(state) = self.encoded_state()? {
+            if let Some(state) = self.observation_frame()? {
                 self.pause_game();
                 return Ok(Some(state));
             }

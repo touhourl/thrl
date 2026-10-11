@@ -1,8 +1,17 @@
 //! Rollout worker process ??? collection.
+//!
+//! Workers collect data from the subworkers. This is the second layer of thrl,
+//! trying to stop the python knowing about thrl internals and even RE things.
+//!
+//! The previous state should not be in the env, it belongs to workers.
+//! (because we have a full dump, why ask them for the info? it sounds like
+//! that the things get changed in frames)
+//!
 
 use crate::algorithms::AlgorithmLayout;
 use crate::games::EnvSpec;
 use crate::logging::{EpisodeState, TrainingLogger};
+use crate::observation::{EncodedState, Frame};
 use crate::param::RuntimeConfig;
 use pyo3::exceptions::PyRuntimeError;
 use pyo3::prelude::*;
@@ -685,9 +694,24 @@ impl Drop for Collector {
     }
 }
 
+fn encode_worker_frame(
+    cfg: &RuntimeConfig,
+    previous: Option<&Frame>,
+    frame: Option<Frame>,
+) -> Result<(Option<Frame>, Option<EncodedState>), String> {
+    let Some(mut frame) = frame else {
+        return Ok((None, None));
+    };
+    let encoded = crate::observation::encode(cfg, previous, &mut frame)?;
+    Ok((Some(frame.history()), Some(encoded)))
+}
+
 // still remembered the first thing of my javascript is a async fn.
 /// this is worker loop, a shit function by me. It still contains
 /// game-specific things and I will delete them, but not in v0.2.0.
+/// Taisei, the main goal at v0.3.0, I fucking forgot that it does not support
+/// human actions (yet) because we cannot see it. using that would require a huge
+/// dep of X11 and Wayland.
 async fn worker_loop(
     worker_id: usize,
     cfg: RuntimeConfig,
@@ -704,8 +728,12 @@ async fn worker_loop(
         worker_id,
         control.borrow().policy_version
     );
-    let mut env = crate::games::spawn(&cfg)?;
-    let mut state = env.initial_state()?;
+    let mut env = Some(crate::games::spawn(&cfg)?);
+    let initial_frame = env
+        .as_mut()
+        .ok_or_else(|| "Worker environment unavailable".to_string())?
+        .initial_state()?;
+    let (mut observation_history, mut state) = encode_worker_frame(&cfg, None, initial_frame)?;
     if state.is_none() {
         return Err("Worker could not get initial state. Is it killed?".to_string());
     }
@@ -731,9 +759,14 @@ async fn worker_loop(
         }
         paused_workers[worker_id].store(false, Ordering::Release);
         if current.config_version != local_config_ver {
+            drop(env.take());
             tokio::time::sleep(Duration::from_millis(cfg.worker.restart_sleep_ms)).await;
-            env = crate::games::spawn(&cfg)?;
-            state = env.initial_state()?;
+            let mut next_env = crate::games::spawn(&cfg)?;
+            let initial_frame = next_env.initial_state()?;
+            let (next_history, next_state) = encode_worker_frame(&cfg, None, initial_frame)?;
+            env = Some(next_env);
+            observation_history = next_history;
+            state = next_state;
             policy_state.fill(0.0);
             buffer.clear();
             ep_rewards.fill(0.0);
@@ -751,7 +784,13 @@ async fn worker_loop(
             continue;
         }
         if state.is_none() {
-            state = env.initial_state()?;
+            let initial_frame = env
+                .as_mut()
+                .ok_or_else(|| "Worker environment unavailable".to_string())?
+                .initial_state()?;
+            let (next_history, next_state) = encode_worker_frame(&cfg, None, initial_frame)?;
+            observation_history = next_history;
+            state = next_state;
             if state.is_none() {
                 continue;
             }
@@ -763,7 +802,9 @@ async fn worker_loop(
         // I mean this
         let forced_action = if cfg.runtime.rl_by_human {
             // Read the actual action taken by me.
-            env.human_action()?
+            env.as_mut()
+                .ok_or_else(|| "Worker environment unavailable".to_string())?
+                .human_action()?
         } else {
             None
         };
@@ -826,13 +867,21 @@ async fn worker_loop(
         // move such a critical loop into rust. if burn-rs, all solved... but I still have xpu...
         // Literally zero money to buy a cuda, also idk Computer or Laptop... due to the need of Matrix
         // Multiplication Computing those years. DDR4 or lower will not be acceptable I tho.
-        let next_state = env.step(response.action, frame_started.elapsed())?;
+        let next_frame = env
+            .as_mut()
+            .ok_or_else(|| "Worker environment unavailable".to_string())?
+            .step(response.action, frame_started.elapsed())?;
+        // a likely an optimization i think.
+        let (next_history, next_state) =
+            encode_worker_frame(&cfg, observation_history.as_ref(), next_frame)?;
         let Some(mut next_state) = next_state else {
             policy_state.fill(0.0);
             buffer.clear();
+            observation_history = None;
             state = None;
             continue;
         };
+        observation_history = next_history;
 
         // Calc R and all transitions (into chunk).
         let next_done_flag = next_state.end;
@@ -911,7 +960,13 @@ async fn worker_loop(
 
         if next_done_flag != 0 {
             policy_state.fill(0.0);
-            state = env.reset()?;
+            let reset_frame = env
+                .as_mut()
+                .ok_or_else(|| "Worker environment issues".to_string())?
+                .reset()?;
+            let (next_history, next_state) = encode_worker_frame(&cfg, None, reset_frame)?;
+            observation_history = next_history;
+            state = next_state;
             if control.borrow().shutdown {
                 break;
             }

@@ -38,6 +38,10 @@ Test how long the MOPPO update needs. You could add more workers if it is quick,
 ## Get started
 To get it running, you need a valid game copy of any games you want to run with.
 
+For Taisei:
+1. Download the binaries from [github release page](https://github.com/touhourl/taisei-sim/releases).
+2. Extract them and place it under ./export.
+
 For PC-98 era games: 
 1. Clone dosbox-x and build it from source:
     ```shell

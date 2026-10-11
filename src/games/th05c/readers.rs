@@ -639,3 +639,93 @@ pub fn all_cheeto_trails(mem: &mut ProcessMemory, cheeto_addr: usize) -> Vec<Che
 
     trails
 }
+
+pub fn read_state(finder: &mut super::DynAddressFinder) -> Option<GameState> {
+    // get all addr
+    let resident_addr = finder.addresses().resident?;
+    let player_pos_addr = finder.addresses().player_pos?;
+    let bullets_addr = finder.addresses().bullets;
+    let enemies_addr = finder.addresses().enemies;
+    let items_addr = finder.addresses().items;
+    let boss_addr = finder.addresses().boss;
+    let boss_hp_addr = finder.addresses().boss_hp;
+    let boss_2_addr = finder.addresses().boss_2;
+    let boss_2_hp_addr = finder.addresses().boss_2_hp;
+    let midboss_addr = finder.addresses().midboss;
+    let midboss_hp_addr = finder.addresses().midboss_hp;
+    let stage_graze_addr = finder.addresses().stage_graze;
+
+    let mem = finder.memory();
+
+    let resident = resident_t(mem, resident_addr, Some(player_pos_addr)).ok()?;
+
+    let player_pos = playfield_motion(mem, player_pos_addr).ok()?;
+    let power = mem.read_u8(player_pos_addr + 0x1E).ok()?;
+    let invincibility_time = mem.read_u16_le(player_pos_addr + 0x1C).ok()?;
+
+    let player = PlayerState {
+        pos: player_pos,
+        power,
+        invincibility_time,
+        invincible_via_bomb: false,
+        miss_frame: 0,
+    };
+    // read all
+    let bullets = bullets_addr
+        .map(|addr| all_bullets(mem, addr))
+        .unwrap_or_default();
+    let enemies = enemies_addr
+        .map(|addr| all_enemies(mem, addr))
+        .unwrap_or_default();
+    let items = items_addr
+        .map(|addr| all_items(mem, addr))
+        .unwrap_or_default();
+
+    let boss_entity = boss_at(mem, boss_addr);
+    let boss_hp = boss_hp_addr.and_then(|addr| mem.read_i16_le(addr).ok());
+    let boss = normalize_boss_entity(mem, boss_entity, boss_addr, boss_hp);
+
+    let boss_2_entity = boss_at(mem, boss_2_addr);
+    let boss_2_hp = boss_2_hp_addr.and_then(|addr| mem.read_i16_le(addr).ok());
+    let boss_2 = normalize_boss_entity(mem, boss_2_entity, boss_2_addr, boss_2_hp);
+
+    let midboss = midboss(mem, midboss_addr, midboss_hp_addr);
+
+    let lasers_addr = (player_pos_addr as isize - 0x6E98) as usize;
+    let lasers = all_lasers(mem, lasers_addr);
+
+    let cheeto_addr = (player_pos_addr as isize - 0x4FE) as usize;
+    let cheeto_trails = all_cheeto_trails(mem, cheeto_addr);
+
+    let custom_addr = (player_pos_addr as isize - 0x1230) as usize;
+    let custom_entities = all_custom_entities(mem, custom_addr);
+
+    let firewave_addr = (player_pos_addr as isize - 0x48) as usize;
+    let firewaves = all_firewaves(mem, firewave_addr);
+
+    let stage_collection = stage_collection_state(
+        mem,
+        Some(player_pos_addr + 0x26),
+        Some(player_pos_addr + 0x23),
+        stage_graze_addr,
+        None,
+    );
+
+    let state = GameState {
+        resident,
+        player,
+        bullets,
+        enemies,
+        items,
+        boss,
+        boss_2,
+        midboss,
+        lasers,
+        cheeto_trails,
+        custom_entities,
+        firewaves,
+        stage_collection,
+    };
+
+    Some(state)
+}

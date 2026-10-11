@@ -349,6 +349,16 @@ impl SpatialMap {
         v.extend(&self.player_dist);
         v
     }
+
+    pub fn to_model_flattened(&self) -> Vec<f32> {
+        let mut v = Vec::with_capacity(self.occupancy.len() * 5);
+        v.extend(&self.occupancy);
+        v.extend(&self.velocity_x);
+        v.extend(&self.velocity_y);
+        v.extend(&self.closest_dist);
+        v.extend(&self.entity_type);
+        v
+    }
 }
 
 // Typed wrappers for convenience. These exist so you don't have to impl the
@@ -509,8 +519,13 @@ impl EnemyMap {
         span_x_px: f32,
         span_y_px: f32,
     ) -> Self {
+        let bosses = [state.boss, state.boss_2, state.midboss]
+            .into_iter()
+            .flatten()
+            .filter(|boss| boss.hp > 0)
+            .map(|boss| boss.entity);
         Self::from_entities_with_mode(
-            state.enemies.iter().copied(),
+            state.enemies.iter().copied().chain(bosses),
             state.player.motion.x,
             state.player.motion.y,
             grid_w,

@@ -154,7 +154,8 @@ class MOActorCritic(nn.Module):
         values = self._critics(gru_out)
         return logits, values, new_hidden
 
-    def forward_sequence(self, features_seq, maps_seq, initial_hidden, dones_seq):
+    def forward_sequence(self, features_seq, maps_seq, initial_hidden, dones_seq,
+                         critic_shared_grad_scale=1.0):
         """BPTT and it is used for MOPPO update. Note that BPTT does not survives new episode.
 
         :param features_seq: [batch, seq_len, feature_dim]
@@ -178,7 +179,8 @@ class MOActorCritic(nn.Module):
             gru_out, h = self.gru(combined.unsqueeze(0), h)
             gru_out = gru_out.squeeze(0)
             logits = self._actor(gru_out)
-            values = self._critics(gru_out)
+            critic_gru_out = gru_out.detach() + critic_shared_grad_scale * (gru_out - gru_out.detach())
+            values = self._critics(critic_gru_out)
             all_logits.append(logits)
             all_values.append(values)
 

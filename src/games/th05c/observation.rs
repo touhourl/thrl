@@ -1,6 +1,22 @@
 use super::state as th05;
 use crate::observation::{Schema, frame::Frame as ObservationFrame, schema1 as s1};
+/*
+    Observation (th05c) of thrl.
+    Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
 
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
 #[inline]
 fn motion(pos: th05::PlayfieldMotion) -> s1::Motion {
     s1::Motion {
@@ -374,5 +390,6 @@ fn schema1(state: th05::GameState) -> s1::Frame {
 pub fn frame(schema: Schema, state: th05::GameState) -> Result<ObservationFrame, String> {
     match schema {
         Schema::Schema1 => Ok(ObservationFrame::Schema1(schema1(state))),
+        Schema::Schema0 => todo!(),
     }
 }

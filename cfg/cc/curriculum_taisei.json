@@ -1,0 +1,22 @@
+[
+  {
+    "when": "start",
+    "type": "struct",
+    "name": "Cfg0",
+    "stage_id": 6,
+    "difficulty": 1,
+    "player_character": 0,
+    "shot_mode": 0,
+    "practice_mode": false,
+    "rng_seed": null,
+    "initial_lives": 8,
+    "initial_bombs": 8,
+    "initial_life_fragments": null,
+    "initial_bomb_fragments": null,
+    "initial_power": null,
+    "initial_point_item_value": null,
+    "initial_score": null,
+    "initial_graze": 0,
+    "frames_per_action": 2
+  }
+]
