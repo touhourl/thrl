@@ -102,5 +102,9 @@ It could not run at any big tech cloud computes at free tier as I tested.
 
 # Special thanks
 
-ReC98 for detailed reverse engineered code and blogs, StableBaseline3 for some implementations in Python, PyTorch for Intel/CUDA acceleration,
-GNU Project for license and OS, Professor Donald E. Knuth for TeX, arxiv.org for fantastic papers (though I hate it also), Institute of Electrical and Electronics Engineers for some papers.
+ReC98 for detailed reverse engineered code and blogs, Taisei Project for the full free software game,
+Andrei Alexeyev, Lukas Weber, Claudio Hoffmann are the main creators of the supported games.
+
+StableBaseline3 for some implementations in Python, PyTorch for Intel/CUDA acceleration,
+GNU Project for license and OS, Professor Donald E. Knuth for TeX, arxiv.org for fantastic papers 
+(though I hate it also), Institute of Electrical and Electronics Engineers for some papers.
