@@ -1,0 +1,109 @@
+\chapter{Configuration}
+\label{ch:config}
+
+\lstset{literate={"}{{\char34}}1}
+
+thrl uses two config files.  The runtime and trainer are
+by an TOML file (rrr.toml), while the game itself
+is to start episodes is controlled by a JSON curriculum file
+(curriculum.json). 
+
+\subsection{Runtime selection}
+
+\begin{lstlisting}[style=darkbase]
+[runtime]
+rl_by_human = false
+reset_optimizer_on_resume = true
+reset_lambda_on_resume = false
+game = "th05c"
+schema = 1
+algorithm = "moppo"
+\end{lstlisting}
+
+\begin{table}[ht]
+\centering
+\begin{tabularx}{\textwidth}{>{\ttfamily}l X}
+\hline
+\hline
+rl\_by\_human & For human episode collection. \\
+reset\_optimizer\_on\_resume & When loading checkpoints, use the newly created optimizer. \\
+reset\_lambda\_on\_resume & Reset the Lagrangian multiplier to initial\_lambda instead of restoring it. Unused. \\
+game & Environment implementation to run.  The impled are th04a, th05c, and taisei. \\
+schema & Observation schema number.  Schema 0 is used by Taisei and schema 1 by th04, th05. \\
+algorithm & Python trainer module. \\
+\hline
+\end{tabularx}
+\caption{Runtime settings}
+\label{tab:runtime-settings}
+\end{table}
+
+
+\subsection{Paths}
+
+Those are straightforward. Do your self and no table here.
+
+\subsection{Parameters}
+
+\begin{table}[ht]
+\centering
+\small
+\begin{tabularx}{\textwidth}{>{\ttfamily}l X}
+\hline
+\normalfont Key & Meaning \\
+\hline
+learning\_rate & Adam learning rate. \\
+gamma & Reward discount factor by GAE. \\
+lambda\_gae & GAE $\lambda$. \\
+clip\_epsilon & PPO clipping range. \\
+value\_coeff & Weight of the critic/value loss. \\
+entropy\_coeff\_start & Initial entropy coefficient. \\
+entropy\_coeff\_end & Final entropy coefficient. \\
+entropy\_anneal\_updates & Number of policy $\pi$ updates (linearly annealed). \\
+ppo\_epochs & Optimization of each policy $\pi$ rollout. \\
+human\_bc\_epochs & Cloning passes used for human data. \\
+human\_adv\_weight\_beta & Advantage dependent weight for human samples. \\
+human\_adv\_weight\_min & Lower bound for the human weight. \\
+human\_adv\_weight\_max & Upper bound for the human weight. \\
+horizon & Number of rollout steps collected for a policy $\pi$ update. \\
+logit\_clamp & Absolute clamp applied to policy $\pi$ logits before action sampling. \\
+max\_grad\_norm & Maximum gradient norm used for gradient clipping. \\
+\hline
+\end{tabularx}
+\caption{MOPPO training settings}
+\label{tab:training-settings}
+\end{table}
+
+\subsection{Workers}
+
+chunk\_size must be divisible by gru.seq\_len. With off\_policy = false, 
+collection is paused while a policy update is prepared.  In off-policy mode collection could
+continue (this gives you more speed), but chunks older than max\_policy\_staleness policy versions are discarded.
+
+The frame\_interval\_ms and action\_repeat\_sleep\_ms values control speed of interaction.
+episode\_cooldown\_ms adds a delay between episode to avoid atom bombs while do nothing. The
+restart\_sleep\_ms is the worker-level delay before restarting a
+failed environment. Not recommended to change other than frame\_interval\_ms.
+
+\subsection{Network and GRU}
+
+Subtile. No change recommended.
+
+\subsection{Observation}
+
+grid\_w and grid\_h are the map resolution. Larger maps preserve more 
+details but increase update memory and CNN work, and is approximately 
+in proportion to $grid\_w \times grid\_h$. 
+
+For schema 1, setting egocentric\_map = true changes spatial
+projection from the fixed playfield to a player-centered region.  The width
+and height of this region are decided by
+egocentric\_map\_span\_x\_px and
+egocentric\_map\_span\_y\_px.
+
+\subsection{Reward scaling and the Lagrangian constraint}
+
+The lagrangian table configures the death-rate constraint used by
+MOPPO.  max\_death\_rate is the target upper bound,
+dual\_lr is the dual-variable update rate,
+dual\_min and dual\_max bound the multiplier, and
+initial\_lambda is its initial value.

@@ -111,3 +111,6 @@ Andrei Alexeyev, Lukas Weber, Claudio Hoffmann are the main creators of the supp
 StableBaseline3 for some implementations in Python, PyTorch for Intel/CUDA acceleration,
 GNU Project for license and OS, Professor Donald E. Knuth for TeX, arxiv.org for fantastic papers 
 (though I hate it also), Institute of Electrical and Electronics Engineers for some papers.
+
+The rise of grifters (decompilation, ports, and RL) in this space taking from our work paints a bad image for future decompilation efforts and has also taken a toll on us psychologically.
+Therefore, we have decided to relicense it under might a non-free license. We apologize for the inconvenience but we believe that this drastic action is necessary given the current circumstances.
