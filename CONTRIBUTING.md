@@ -57,7 +57,7 @@ Define `author` as any person or thing that **did any part of a contribution**.
 
 Define `contributor` as the person who **submits** the PR or an issue.
 
-Contributors and authors must understand their code deeply. A contributor must keep the work under GPL-v3 terms and be responsible for anything that the author did.
+Contributors and authors must understand their code deeply. A contributor must keep the work under AGPL-v3 terms and be responsible for anything that the author did.
 You can be an author and a contributor at the same time. A contributor must clearly state the author's name and sources.
 A PR can only be written by the contributor. If a contributor submits code without understanding what the author did, the code can only be submitted by the author.
 A contributor cannot do any style of matrix multiplication while contributing, except for testing the code. We strictly don't allow any matrix multiplication in any PR's documentation.
