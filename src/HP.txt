@@ -1,3 +1,0 @@
-26500 is the ExAlice's max hp.
-
-So 30k was used to normalize.

@@ -9,7 +9,7 @@
 //! the whole grid depends on getting consistent position and velocity data.
 //! Some of them are old and not used anymore so I delete them.
 //!
-//! TODO: Remove unused maps after release to github and contributors of thrl project starting to appear
+//! TODO: Remove unused maps after release to github starting to appear
 //! See CONTRIBUTING.md:{Writing code}
 //!
 //! [copy]
@@ -18,19 +18,19 @@
 /*
     Map layout of thrl.
     Egocentric Map of RL-rs.
-    Copyright (C) 2026  T. Liu (touhourl@proton.me) and contributors of thrl project
+    Copyright (C) 2026  T. Liu (touhourl@proton.me)
 
     This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
+    it under the terms of the GNU Affero General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+    GNU Affero General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
+    You should have received a copy of the GNU Affero General Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 use super::frame::*;

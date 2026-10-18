@@ -76,4 +76,4 @@ Clean up comments and code you don't need anymore, if unused comments or code in
 
 ## License
 
-By submitting a contribution, you agree that your code may be distributed under the GPL-v3-or-later license, and your documentation may be distributed under the CC BY-SA 4.0 license.
+By submitting a contribution, you agree that your code may be distributed under the AGPL-v3-or-later license, and your documentation may be distributed under the CC BY-NC-ND 4.0 license.

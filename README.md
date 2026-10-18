@@ -78,6 +78,9 @@ Build documentation:
 ```shell
 make docs
 ```
+# Config Possibilities
+
+You can do many or change configs if you want. See docs.
 
 # Donating
 
